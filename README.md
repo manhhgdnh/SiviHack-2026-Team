@@ -1,1 +1,0 @@
-# SiviHack-2026-Team
