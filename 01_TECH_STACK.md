@@ -27,9 +27,6 @@ Công nghệ chính:
 Phương án dự phòng:
 - Streamlit
 
-Owner:
-[Thành viên 3]
-
 Các chức năng thường cần:
 - File upload
 - Form input
@@ -49,9 +46,6 @@ Các chức năng thường cần:
 Công nghệ chính:
 - Python
 - FastAPI
-
-Owner:
-[Thành viên 2]
 
 Trách nhiệm:
 - REST API
@@ -78,13 +72,8 @@ Libraries chính:
 - pydantic
 
 LLM chính:
-- [Điền provider team chọn]
+OpenAI hoặc Claude
 
-LLM dự phòng:
-- [Điền provider backup]
-
-Owner:
-[Thành viên 1]
 
 Các capability có thể dùng:
 - Structured extraction
@@ -106,9 +95,6 @@ Các capability có thể dùng:
 Công nghệ:
 n8n Cloud
 
-Owner:
-[Thành viên 4]
-
 Use cases:
 - Webhook
 - HTTP Request
@@ -128,9 +114,6 @@ Supabase / PostgreSQL
 
 Phương án đơn giản:
 SQLite
-
-Owner:
-[Thành viên 2]
 
 ---
 
