@@ -1,11 +1,13 @@
 /**
  * The sponsor's sample set, imported verbatim from the Markdown files rather
- * than transcribed, so every authored citation quotes text that is really
- * there. Copied into the app from `sample_data/` at the repo root so the
- * frontend builds and deploys standalone.
+ * than transcribed, so every citation quotes text that is really there. Copied
+ * into the app from `sample_data/` at the repo root so the frontend builds and
+ * deploys standalone; a backend test keeps the copies byte-identical.
  *
  * All parties in these documents are fictional; the files say so themselves.
  */
+
+import { canonical } from "@/lib/quote"
 
 import rfp from "./samples/rfp_nordframe.md?raw"
 import weak from "./samples/response_1_weak.md?raw"
@@ -16,42 +18,31 @@ import overpromise from "./samples/response_4_overpromise.md?raw"
 export type SampleId = "weak" | "medium" | "strong" | "overpromise"
 
 /**
- * The sample files carry a `**Variant: WEAK — …**` annotation describing what
- * each response is meant to demonstrate. That is fixture metadata, not part of
- * the proposal, and leaving it in would announce the verdict inside the text
- * under review. Dropped before the text is split, so line numbers, the
- * rendered page and every anchor-derived citation agree.
+ * `canonical` drops the `**Variant: WEAK — …**` fixture banner (it would announce the
+ * verdict inside the text under review) and trailing whitespace. The backend's recordings
+ * and cache are keyed on exactly this text.
  */
-const stripVariantBanner = (text: string) =>
-  text
-    .split("\n")
-    .filter((line) => !/^\s*\*\*Variant:/i.test(line))
-    .join("\n")
+export const RFP_TEXT = canonical(rfp)
 
-export const RFP_TEXT = rfp.trimEnd()
-
-export const SAMPLES: Record<
-  SampleId,
-  { label: string; note: string; text: string }
-> = {
+export const SAMPLES: Record<SampleId, { label: string; note: string; text: string }> = {
   weak: {
     label: "Weak",
     note: "Generic, pricing and timeline deferred, several requirements unaddressed",
-    text: stripVariantBanner(weak).trimEnd(),
+    text: canonical(weak),
   },
   medium: {
     label: "Medium",
     note: "Good functional scope, but vague on pricing, timeline and risk",
-    text: stripVariantBanner(medium).trimEnd(),
+    text: canonical(medium),
   },
   strong: {
     label: "Strong",
     note: "Addresses every requirement, priced and scheduled, risks disclosed",
-    text: stripVariantBanner(strong).trimEnd(),
+    text: canonical(strong),
   },
   overpromise: {
     label: "Overpromising",
     note: "Scope balloons past the ask and contradicts a stated constraint",
-    text: stripVariantBanner(overpromise).trimEnd(),
+    text: canonical(overpromise),
   },
 }

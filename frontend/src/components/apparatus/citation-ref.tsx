@@ -6,8 +6,9 @@ import { Siglum } from "./siglum"
 import { useCollation, type Tone } from "./collation"
 
 /**
- * `R §4.4` — the receipt. Every judgment in the apparatus carries one, and
- * every one is live: it collates rather than navigates.
+ * `R §3.1 · Pricing` — the receipt. Every judgment in the apparatus carries one, and
+ * every one is live: it collates rather than navigates. A citation with no words to
+ * mark still lands on its section heading.
  */
 export function CitationRef({
   citation,
@@ -27,21 +28,23 @@ export function CitationRef({
   const { collate, sourceId: live } = useCollation()
   const isLive = live === sourceId
 
-  const label = citation.section || excerpt(citation.quote, 4)
+  const label = citation.label || (citation.quote ? excerpt(citation.quote, 4) : "")
+  const where = `${citation.witness} ${citation.label || "(no section)"}`
+  const title = citation.quote ? `${where}: “${excerpt(citation.quote, 12)}”` : where
+  const target: Citation = citation.quote ? citation : { ...citation, quote: citation.header || null }
 
-  return (
-    <button
-      type="button"
-      onClick={() => collate(sourceId, [citation, ...(also ?? [])], tone ?? null)}
-      title={`${citation.witness} §${citation.section}: “${excerpt(citation.quote, 12)}”`}
-      className={cn(
-        "group/cite inline-flex items-baseline gap-[0.3em] align-baseline",
-        "font-sans text-[0.7rem] font-semibold tracking-wide whitespace-nowrap",
-        "cursor-pointer transition-colors duration-150",
-        isLive ? "text-ink" : "text-ink-2 hover:text-ink",
-        className,
-      )}
+  const near = citation.fuzzy && (
+    <abbr
+      title="Near match — the quoted words were found paraphrased or elsewhere in this section"
+      aria-label="near match"
+      className="text-ink-3 ml-1 no-underline"
     >
+      ≈
+    </abbr>
+  )
+
+  const body = (
+    <>
       <Siglum of={citation.witness} className="translate-y-[0.06em]" />
       <span
         className={cn(
@@ -50,8 +53,29 @@ export function CitationRef({
           isLive && "decoration-ink",
         )}
       >
-        §{label}
+        {label}
       </span>
+      {near}
+    </>
+  )
+
+  const look = cn(
+    "group/cite inline-flex items-baseline gap-[0.3em] align-baseline",
+    "font-sans text-[0.7rem] font-semibold tracking-wide whitespace-nowrap",
+    isLive ? "text-ink" : "text-ink-2",
+    className,
+  )
+
+  if (!target.quote) return <span className={look}>{body}</span>
+
+  return (
+    <button
+      type="button"
+      onClick={() => collate(sourceId, [target, ...(also ?? [])], tone ?? null)}
+      title={title}
+      className={cn(look, "cursor-pointer transition-colors duration-150 hover:text-ink")}
+    >
+      {body}
     </button>
   )
 }

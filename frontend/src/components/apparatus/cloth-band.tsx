@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 import type { Verdict } from "@/api/schema"
-import { VERDICT_LABEL } from "@/lib/score"
+import { NO_VERDICT_LABEL, VERDICT_LABEL } from "@/lib/score"
 
 import { useSteppedNumber } from "./stepped-number"
 
@@ -13,7 +13,8 @@ const CLOTH: Record<Verdict, string> = {
 /**
  * The verdict is bookcloth at page scale, and the traffic light is the binding
  * itself rather than a dot. The judgment is the poster element; the score is a
- * bound numeral subordinate to it, at its left.
+ * bound numeral subordinate to it, at its left. Ink is the cloth of no verdict:
+ * when nothing was scored the band says so, never one of the three colours.
  */
 export function ClothBand({
   verdict,
@@ -21,33 +22,37 @@ export function ClothBand({
   note,
   children,
 }: {
-  verdict: Verdict
-  score: number
+  verdict: Verdict | null
+  score: number | null
   /** One line under the verdict: the requirement tally. */
   note?: React.ReactNode
   children?: React.ReactNode
 }) {
-  const shown = useSteppedNumber(score)
+  const shown = useSteppedNumber(score ?? 0)
 
   return (
     <div
       className={cn(
         "text-cloth-text transition-colors duration-500",
-        CLOTH[verdict],
+        verdict ? CLOTH[verdict] : "bg-ink",
       )}
     >
       <div className="mx-auto flex max-w-[112rem] flex-col gap-4 px-5 py-4 sm:px-8 md:flex-row md:items-center md:gap-6 md:py-5">
         <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-5">
           <span
             className="bg-ink/20 flex shrink-0 items-baseline gap-0.5 px-2.5 py-1.5"
-            aria-label={`Overall score ${shown.toFixed(1)} out of 5`}
+            aria-label={
+              score === null
+                ? "Overall score not available"
+                : `Overall score ${shown.toFixed(1)} out of 5`
+            }
           >
             <span
               data-numeric
               aria-hidden
               className="font-sans text-[1.5rem] leading-none font-semibold tabular-nums"
             >
-              {shown.toFixed(1)}
+              {score === null ? "—" : shown.toFixed(1)}
             </span>
             <span
               aria-hidden
@@ -65,7 +70,7 @@ export function ClothBand({
                 letterSpacing: "-0.035em",
               }}
             >
-              {VERDICT_LABEL[verdict]}
+              {verdict ? VERDICT_LABEL[verdict] : NO_VERDICT_LABEL}
             </h1>
             {note && (
               <p className="editorial text-cloth-text/85 mt-1.5 flex flex-wrap gap-x-3 gap-y-1">

@@ -60,18 +60,6 @@ export function findQuote(
   return { start: src.map[at], end: src.map[at + q.length - 1] + 1 }
 }
 
-/** The nearest heading above the quote, as plain words. Null if none. */
-export function sectionOf(source: string, quote: string): string | null {
-  const hit = findQuote(source, quote)
-  if (!hit) return null
-  const before = source.slice(0, hit.start).split("\n")
-  for (let i = before.length - 1; i >= 0; i--) {
-    const m = /^[ \t]{0,3}#{1,6}[ \t]+(.+)$/.exec(before[i])
-    if (m) return plain(m[1])
-  }
-  return null
-}
-
 /**
  * Insert `block` as its own paragraph after the paragraph that contains
  * `quote`, or at the end of the text when the quote cannot be found. The
@@ -102,4 +90,25 @@ export function plain(markdown: string): string {
 export function excerpt(markdown: string, n = 8): string {
   const words = plain(markdown).split(" ")
   return words.length <= n ? words.join(" ") : `${words.slice(0, n).join(" ")}…`
+}
+
+/** Two quotes name the same passage when one contains the other after normalisation. */
+export function samePassage(a: string | null, b: string | null): boolean {
+  if (!a || !b) return false
+  const x = normalize(a).text
+  const y = normalize(b).text
+  return x.length > 0 && y.length > 0 && (x.includes(y) || y.includes(x))
+}
+
+/**
+ * The text as the backend takes it: the `**Variant: …**` fixture banner dropped and
+ * trailing whitespace trimmed. Recordings and the backend cache are keyed on this form, so
+ * sample buttons, uploads and the outgoing request all go through it.
+ */
+export function canonical(text: string): string {
+  return text
+    .split("\n")
+    .filter((line) => !/^\s*\*\*Variant:/i.test(line))
+    .join("\n")
+    .trimEnd()
 }

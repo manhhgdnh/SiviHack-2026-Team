@@ -247,7 +247,7 @@ A warm paper-and-ink neutral field, cut by exactly two kinds of colour: the book
 ### Primary
 - **Bookcloth Green** (`#1A5632`): the verdict binding when the draft is ready to send. It colours the entire full-bleed band across the top of the review, not a dot or a badge.
 - **Bookcloth Ochre** (`#8A5A00`): the binding for *fix before sending*.
-- **Bookcloth Crimson** (`#9E1B32`): the binding for *not ready*. Outside the band it is spent exactly once in the whole apparatus — on a requirement the draft **contradicts** — and on the setup view's error rail.
+- **Bookcloth Crimson** (`#9E1B32`): the binding for *not ready*. Outside the band it is spent in exactly two places: the setup view's error rail, and the draft going against the RFP — a requirement it **contradicts**, a client constraint it **violates**, and the one notice they share. Severity group heads borrow it under the Status Colour Rule and do not count. Ochre also carries a *partial review*: a run that finished with pieces missing. Ink is the cloth of *no verdict*: when nothing was scored the band is ink and says so, never one of the three verdicts.
 - **Bookcloth Text** (`#FDFCF7`): the paper-warm white that prints on all three cloths, and the fill of the primary action button that sits on them.
 
 ### Secondary
@@ -346,7 +346,8 @@ Closed rectangles are rationed. The only bordered box in the system is the **tra
 - **Quiet (the apparatus action):** no border, no background, `.editorial` at ink-2 with a Lucide icon at `0.875rem`; hover and active state are simply ink. Every in-entry action is this variant.
 - **Focus:** the global `:focus-visible` — a 2px Oxford Blue outline at 2px offset. Never removed, never restyled per component.
 
-### Citation Reference (`R §Req. 3`)
+### Citation Reference (`R §3.1 · Pricing`)
+The label is the source's section id and its header as the backend's outline names it (`§0` is the title and front matter, `¶4` a paragraph in a document without headings), never a line number. A near match — the quoted words found paraphrased or elsewhere in the section — carries a small `≈` after the label with its explanation in the title. A citation with no words to mark still opens on its section heading.
 The receipt on every judgment, and the system's most-used interactive element. A baseline-aligned inline row of two parts: the witness siglum square and the section label underlined in `rule` at 3px offset (the first words of the quote when the passage has no heading above it). Its title carries the quoted words. It is a button, not a link: it collates rather than navigates. Hover and live state darken the underline to ink and the text to ink; the live entry stays marked while its collation holds.
 
 ### Entry Reference Number
@@ -355,8 +356,17 @@ Every apparatus entry carries its number in the 2rem margin gutter, and the numb
 ### Apparatus Entry (signature)
 `lemma ] reading` — the mark that makes an entry an apparatus entry rather than a styled list row. Lemma in Brygada; a `0.42em`-padded ink-3 bracket; the reading in `.editorial`, weighted by severity or status. Below it, the citations; expanded, the quoted passage as a serif blockquote behind a left `rule` hairline, the editor's prose, the transcription inset carrying the suggested fix, and the action row. A settled entry strikes through its lemma and drops to ink-2.
 
-### Contradiction Notice
-When any requirement is contradicted, a notice sits directly under the cloth band on paper with a single 1px crimson rule beneath: a Subhead in crimson ("Contradicts the RFP"), one Body line giving the RFP's words after the R siglum and the draft's after the P siglum, and a crimson outline button, "Show the contradiction", that opens the issue and collates both passages in the crimson wash. Never a second band, never a coloured left border; it disappears when the issue is settled.
+### Conflict Notice
+One notice for the two ways a draft goes against the RFP. When a requirement is contradicted or a client constraint is violated, it sits directly under the cloth band on paper with a single 1px crimson rule beneath: a Subhead in crimson ("Contradicts the RFP" or "Violates a client constraint", the latter followed by the constraint's kind in Label type), one Body line giving the RFP's words after the R siglum and the draft's after the P siglum, and a crimson outline button ("Show the contradiction" / "Show the violation") that opens the entry and collates both passages in the crimson wash. When both cite the same passage the violation speaks alone. Never a second band, never a coloured left border; it disappears when its entry is settled.
+
+### Review Notices
+Under the band, in this order and only these: the Conflict Notice (crimson rule), one Review Notice, and the staleness banner (lemma). A Review Notice is paper with a single 1px rule beneath in its colour and an outline-on-paper button; never a band, never a box. Three exist and only the first applicable shows: a *partial review* in ochre ("Partial review", listing what did not finish), an *incomplete review* in ink ("Review incomplete", when the analysis call failed and only the requirements are real), and the *no-RFP note* in Label type ("No RFP provided").
+
+### Run Trace Ticker
+Each finished stage prints what it found beneath its row in Reference type — `10 requirements · 4 constraints`, `1 contradicted · 4 not found · 1 violation`, `3 findings` — so the wait is evidence arriving, not a spinner. Stages skipped for want of an RFP say `skipped` with `no RFP` beneath. Nothing advances on a timer; a "Stop the run" outline button ends it.
+
+### The No-RFP State
+The RFP is optional and the setup says so on the pane itself, with what is lost without it. In the review the R rail is not shown, the Requirements tab states why it is empty, Completeness prints `—` with its note, the tab reads `Criteria 6/7`, and the overall is the mean of what was scored.
 
 ### Witness Rails and Column Splits
 Both witnesses start closed, so the apparatus has the whole width until one is wanted. Each witness closes from an × in its own header and folds into a rail at the right edge — a 2.5rem column carrying the siglum square and the title set vertically — that reopens it, so the layout controls live on the thing they control and are never clipped by a narrow apparatus. At `xl` the three columns are react-resizable-panels with 1px `rule` separators carrying a 3px×1.5rem ink-3 grip (ink on hover, an 8px hit area); the split is remembered per combination of open witnesses and double-clicking a separator resets its panel. Below `xl` the columns stack and a closed witness becomes a horizontal rail.
@@ -365,7 +375,7 @@ Both witnesses start closed, so the apparatus has the whole width until one is w
 Text left, sign right: the requirement's words in Reading, the note and citations beneath, and at the far right a 0.875rem square in the status colour with the status name in its title and for screen readers. The tally above the list is the legend, so the row carries no status word.
 
 ### Issue Entry
-Each severity group opens with a Subhead in condensed type in its colour (crimson, ochre, ink-3) over a solid ink rule, the count in Reference beside it, and groups sit 2rem apart. An entry begins with a 0.625rem severity square and the lemma in Reading at medium weight, then its citations. Opened, the body names its parts in the editor's voice ("The draft says", "Why it matters", "Suggested fix"); once the apparatus is wider than 48rem (a container query, not the viewport) the passage and the reasoning sit on the left and the fix with its actions on the right, so a wide column is used rather than left empty.
+Each severity group opens with a Subhead in condensed type in its colour (crimson, ochre, ink-3) over a solid ink rule, the count in Reference beside it, and groups sit 2rem apart. An entry begins with a 0.625rem severity square and the lemma in Reading at medium weight, then its citations. Opened, the body names its parts in the editor's voice ("The draft says", "Why it matters", "Suggested fix"); once the apparatus is wider than 48rem (a container query, not the viewport) the passage and the reasoning sit on the left and the fix with its actions on the right, so a wide column is used rather than left empty. A constraint violation is its own group above Must fix, its reading `Constraint · Technology`, and it always prints the RFP's words after `R asks`; its body asks "Why it breaks the constraint". A finding's reading names its kind after the criterion (`Pricing Clarity · Pricing mismatch`). An entry with no fix prints `No fix suggested` where the inset would be.
 
 ### Cloth Band (signature)
 Full-bleed, verdict-coloured, `transition-colors 500ms` when the verdict changes. The score is a bound numeral in an `ink/20` plaque at the far left, the verdict is display type running toward the right edge, and the actions sit flush right at cap height. The score steps through intervening tenths at 45ms a step when weights move, so a recompute is watched rather than inferred; under `prefers-reduced-motion` it returns the target during render with no animation at all.
@@ -402,7 +412,8 @@ A 2.25rem-tall flat bar on `paper-inset` divided into ink / ink-2 alternating se
 
 ### Don't:
 - **Don't** warm the background toward cream or ivory; that is this world's anti-reference.
-- **Don't** give severity a colour, a badge or a dot, and don't spend crimson anywhere but the verdict band, a `contradicted` requirement, and the error rail.
+- **Don't** give severity a colour, a badge or a dot, and don't spend crimson anywhere but the verdict band, the draft going against the RFP (a contradicted requirement, a violated constraint, their notice), and the error rail.
+- **Do** print a citation as `§id · Header`; don't invent a section for a finding that has none.
 - **Don't** add a box-shadow, a hover lift, or a hover scale. Depth is ink weight, hairlines and one recessed tone.
 - **Don't** round a corner. `--radius` is `0px`, including for borrowed shadcn primitives.
 - **Don't** wrap content in a card. The only closed rectangle is the transcription inset for text proposed but not yet in a document; a preview inside a witness gets a left hairline instead.

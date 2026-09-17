@@ -4,20 +4,51 @@
  * P is the base text — the draft proposal under review.
  * R is the collating witness — the client's RFP, the authority the draft
  * is measured against. Every judgment the editor makes carries the siglum
- * and line of the passage that produced it.
+ * and section of the passage that produced it.
+ *
+ * The wire shapes live in `./generated` (from `app/openapi.json`); `adapt.ts`
+ * turns them into these.
  */
+
+import type {
+  ConstraintKind,
+  CriterionId,
+  FindingType,
+  Outlines,
+  ScoringMeta,
+  Signals,
+} from "@/api/generated/types.gen"
+
+export type {
+  ConstraintKind,
+  CriterionId,
+  FindingType,
+  Outlines,
+  ScoringMeta,
+  SectionRef,
+  Signals,
+} from "@/api/generated/types.gen"
 
 export type Siglum = "R" | "P"
 
+/** UI weights: shares of 100 keyed by criterion; a disabled criterion is sent as 0. */
+export type Weights = Record<CriterionId, number>
+
 export interface Citation {
   witness: Siglum
-  /** The source's own section label, e.g. "Req. 3" — what a reader would quote. */
-  section: string
+  /** Backend section id: "§3.1", "§0" (title / front matter), "¶4"; "" when unknown. */
+  sectionId: string
+  /** That section's header from the outline; "" when the id is unknown. */
+  header: string
+  /** Printed form without the siglum: "§3.1 · Pricing" (the Siglum component adds R/P). */
+  label: string
   /**
-   * Verbatim from the witness. The apparatus marks exactly this passage in
-   * the set text, matched without regard to case, spacing or Markdown marks.
+   * Verbatim words to mark in the witness; null for a section-only pointer
+   * (an addressed requirement, a code-built completeness citation).
    */
-  quote: string
+  quote: string | null
+  /** The backend found the words only fuzzily, or in another section than claimed. */
+  fuzzy: boolean
 }
 
 export interface Witness {
@@ -28,32 +59,32 @@ export interface Witness {
   text: string
 }
 
-export type RequirementStatus =
-  | "addressed"
-  | "partial"
-  | "missing"
-  | "contradicted"
+export type RequirementStatus = "addressed" | "partial" | "missing" | "contradicted"
 
 export interface Requirement {
   id: string
-  /** Printed reference in the margin column. Every one is deep-linkable. */
-  ref: string
+  /** The model's 2–6 word name for the ask. */
+  label: string
+  /** The RFP header the ask sits under; "RFP" when unknown. */
   section: string
+  /** The RFP's own words, markdown stripped. */
   text: string
+  /** "missing" when the model gave no verdict at all. */
   status: RequirementStatus
-  /** Where in the proposal it is answered, when it is. */
+  /** Where in the proposal it is answered, when it is; quote null when addressed. */
   answeredAt: Citation | null
   source: Citation
+  /** The coverage explanation; "" for an addressed requirement. */
   note: string
 }
 
 export type Severity = "must" | "should" | "optional"
+export type IssueKind = "coverage" | "finding" | "violation"
 
-export interface Issue {
+interface IssueBase {
   id: string
-  ref: string
   severity: Severity
-  criterionId: string
+  criterionId: CriterionId
   /** The lemma: the words being judged, or a short name for their absence. */
   lemma: string
   /** Verbatim from the proposal, when there is text to quote. */
@@ -63,43 +94,82 @@ export interface Issue {
   /** The RFP passage that makes this a problem. */
   against: Citation | null
   whyItMatters: string
-  suggestedFix: string
+  /** Null only on a coverage entry the model left without a fix. */
+  suggestedFix: string | null
+}
+
+export type Issue = IssueBase &
+  (
+    | { kind: "coverage"; status: Exclude<RequirementStatus, "addressed">; requirementId: string }
+    | { kind: "finding"; findingType: FindingType }
+    | {
+        kind: "violation"
+        constraintId: string
+        constraintKind: ConstraintKind
+        /** The backend's own grading; the UI files every violation under must fix. */
+        graded: Severity
+      }
+  )
+
+export interface Constraint {
+  id: string
+  kind: ConstraintKind
+  label: string
+  source: Citation
 }
 
 export interface Criterion {
-  id: string
+  id: CriterionId
   name: string
   whatToCheck: string
   enabled: boolean
   /** Share of a fixed 100. Enabled weights always total 100. */
   weight: number
-  custom?: boolean
 }
 
 export interface CriterionScore {
-  criterionId: string
-  /** 1–5. */
-  score: number
+  criterionId: CriterionId
+  /** 1–5, or null when not assessable (see `note`). */
+  score: number | null
   strength: string | null
   weakness: string
+  note: string | null
   citations: Citation[]
 }
 
 export type Verdict = "ready" | "fix" | "not-ready"
 
-export interface Review {
-  verdict: Verdict
-  /** Weighted mean of enabled criteria, 1–5, one decimal. */
-  overall: number
-  criteria: CriterionScore[]
-  requirements: Requirement[]
-  issues: Issue[]
-}
-
 export interface WeightSuggestion {
-  criterionId: string
+  criterionId: CriterionId
+  /** Share of 100 (the backend's relative weight, normalised). */
   weight: number
   reason: string
+}
+
+/** What "Suggest weights from the RFP" brings back: the suggestions and what was read. */
+export interface WeightAdvice {
+  suggestions: WeightSuggestion[]
+  requirements: number
+  constraints: number
+}
+
+export interface Review {
+  /** The backend's weighted mean with the weights that were sent; null when nothing scored. */
+  overall: number | null
+  verdict: Verdict | null
+  criteria: CriterionScore[]
+  requirements: Requirement[]
+  constraints: Constraint[]
+  issues: Issue[]
+  suggestedWeights: WeightSuggestion[]
+  signals: Signals
+  sections: Outlines
+  meta: ScoringMeta
+  /** Something is missing: see `error` and `warnings`. */
+  partial: boolean
+  /** The analysis call failed: requirements are real, nothing after them is. */
+  error: string | null
+  warnings: string[]
 }
 
 export interface ReviewInput {

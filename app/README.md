@@ -53,7 +53,8 @@ mode exists for a single local GPU (`LLM_SPLIT_CALLS=auto` picks by provider).
 
 ```bash
 cp .env.example .env        # then paste your Gemini key into GEMINI_API_KEY
-./run.sh up                 # build, start ollama + backend + nginx, pull qwen2.5:7b (~4.5 GB)
+./run.sh up                 # build + start backend, the built frontend and nginx (Gemini; no Ollama)
+./run.sh warm               # fill data/cache from the recorded answers: the 4 samples cost nothing
 curl localhost/api/health   # {"ok":true}     docs: http://localhost/api/docs
 ./run.sh score              # weak sample through nginx (blocking)
 ./run.sh stream response_4_overpromise.md   # same through SSE; watch the events arrive
@@ -61,7 +62,8 @@ curl localhost/api/health   # {"ok":true}     docs: http://localhost/api/docs
 ```
 
 Only nginx has a host port: `/api/*` → backend (prefix stripped, buffering off for SSE),
-`/` → frontend service. The `frontend` service is a placeholder; the real app is `../frontend`.
+`/` → the built frontend (`../frontend/Dockerfile`, nginx on :3000). The local Ollama service only
+starts with `docker compose --profile ollama up` when `LLM_PROVIDER=ollama`.
 
 ## Run locally (hot reload)
 
@@ -90,6 +92,17 @@ Every real call appends a row to `data/usage.csv` (time, call, model, prompt / o
 thinking / cached tokens, USD at Gemini 3.8 Flash list price); once a day's total passes
 $20 the backend logs a warning, which is what a runaway loop looks like. Rate-limit (429)
 and overload (503) responses are retried up to three times with backoff before a run fails.
+A hard stop: once the ledger totals `LLM_BUDGET_USD` (5 in `.env.example`) no real call is made;
+cache hits keep working. `python -m app.usage` prints today / total / budget.
+
+**Recording and replay.** `LLM_PROVIDER=replay` (see `.env.replay`) answers every prompt from
+`tests/fixtures/replay/<sha16>.json`, keyed by the prompt text, and fails loudly on a miss —
+no key, no network, no cost. `uv run --env-file .env python tests/record_fixtures.py` records
+the four samples plus a no-RFP run through Gemini (only prompts without a recording are paid
+for) and writes the full results to `../frontend/src/api/fixtures/results/`. `LLM_REPLAY_FAIL=coverage`
+(or `group:<id>`, `extract`) makes a call kind answer invalid JSON to rehearse the degraded
+paths; `LLM_REPLAY_DELAY_MS` slows replay down to watch the run trace. `./run.sh warm` and
+`make warm` fill `data/cache` from the recordings with the same keys a live run uses.
 
 ## Contract
 

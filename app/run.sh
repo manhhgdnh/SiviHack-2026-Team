@@ -8,6 +8,10 @@ cd "$(dirname "$0")"
 env_model=""
 [[ -f .env ]] && env_model="$(grep -E '^OLLAMA_MODEL=' .env | tail -1 | cut -d= -f2- | sed 's/[[:space:]]*#.*//' | xargs || true)"
 MODEL="${OLLAMA_MODEL:-${env_model:-qwen2.5:7b}}"
+# Provider: env var > .env > gemini
+env_provider=""
+[[ -f .env ]] && env_provider="$(grep -E '^LLM_PROVIDER=' .env | tail -1 | cut -d= -f2- | sed 's/[[:space:]]*#.*//' | xargs || true)"
+PROVIDER="${LLM_PROVIDER:-${env_provider:-gemini}}"
 API_URL="http://localhost/api"             # through nginx; backend has no host port
 SAMPLES="$(cd .. && pwd)/sample_data"
 
@@ -25,12 +29,17 @@ confirm() {
 up() {
   if [[ ! -f .env ]]; then
     cp .env.example .env
-    warn "created .env from .env.example (ollama test mode)"
+    warn "created .env from .env.example — paste GEMINI_API_KEY into it"
   fi
-  info "building + starting services..."
-  docker compose up -d --build
-  ok "services up. api → $API_URL  (docs: http://localhost/api/docs)"
-  pull_model
+  info "building + starting services (provider: $PROVIDER)..."
+  if [[ "$PROVIDER" == "ollama" ]]; then
+    docker compose --profile ollama up -d --build
+    ok "services up. api → $API_URL  (docs: http://localhost/api/docs)"
+    pull_model
+  else
+    docker compose up -d --build
+    ok "services up. api → $API_URL  (docs: http://localhost/api/docs)"
+  fi
 }
 
 pull_model() {
@@ -65,11 +74,11 @@ score() {
   local sample="${1:-response_1_weak.md}"
   info "POST $API_URL/score with $sample vs rfp_nordframe.md (slow on a local 7B)..."
   python3 - "$SAMPLES/rfp_nordframe.md" "$SAMPLES/$sample" <<'PY' |
-import json, pathlib, sys
-print(json.dumps({
-  "rfp": pathlib.Path(sys.argv[1]).read_text(),
-  "proposal": pathlib.Path(sys.argv[2]).read_text(),
-}))
+import json, pathlib, re, sys
+def canonical(p):  # the form the UI sends: fixture banner dropped, trailing whitespace trimmed
+    lines = [l for l in pathlib.Path(p).read_text().split("\n") if not re.match(r"^\s*\*\*Variant:", l, re.I)]
+    return "\n".join(lines).rstrip()
+print(json.dumps({"rfp": canonical(sys.argv[1]), "proposal": canonical(sys.argv[2])}))
 PY
     curl -sS "$API_URL/score" -H 'Content-Type: application/json' -d @- | python3 -m json.tool
 }
@@ -78,17 +87,28 @@ stream() {
   local sample="${1:-response_4_overpromise.md}"
   info "POST $API_URL/score/stream (SSE) with $sample vs rfp_nordframe.md — events print as they arrive..."
   python3 - "$SAMPLES/rfp_nordframe.md" "$SAMPLES/$sample" <<'PY' |
-import json, pathlib, sys
-print(json.dumps({
-  "rfp": pathlib.Path(sys.argv[1]).read_text(),
-  "proposal": pathlib.Path(sys.argv[2]).read_text(),
-}))
+import json, pathlib, re, sys
+def canonical(p):  # the form the UI sends: fixture banner dropped, trailing whitespace trimmed
+    lines = [l for l in pathlib.Path(p).read_text().split("\n") if not re.match(r"^\s*\*\*Variant:", l, re.I)]
+    return "\n".join(lines).rstrip()
+print(json.dumps({"rfp": canonical(sys.argv[1]), "proposal": canonical(sys.argv[2])}))
 PY
     curl -sSN "$API_URL/score/stream" -H 'Content-Type: application/json' -H 'Accept: text/event-stream' -d @- |
     cut -c1-220
 }
 
+warm() {
+  info "filling data/cache from the recorded answers (no model call, no cost)..."
+  docker compose exec -T backend env LLM_PROVIDER=replay USE_CACHE=true python tests/regression.py /sample_data
+  ok "cache warm: the 4 samples now answer from disk on the demo machine."
+}
+
+spend() {
+  docker compose exec -T backend python -m app.usage
+}
+
 regression() {
+  warn "this calls the model for every sample that is not cached — run './run.sh warm' first"
   info "running tests/regression.py inside the backend container..."
   docker compose exec -T backend python tests/regression.py /sample_data
 }
@@ -117,6 +137,8 @@ menu() {
   7) stream      smoke-test /score/stream (SSE) with the overpromise sample
   8) regression  run all 4 samples, assert weak < medium < strong
   9) reset       full reset
+ 10) warm        fill the cache from the recorded answers ($0)
+ 11) spend       today / total / budget from the usage ledger
   q) quit
 MENU
 
@@ -132,6 +154,8 @@ MENU
     7) stream ;;
     8) regression ;;
     9) reset ;;
+    10) warm ;;
+    11) spend ;;
     q|Q) exit 0 ;;
     *) warn "unknown option" ;;
   esac
@@ -150,6 +174,8 @@ if [[ $# -gt 0 ]]; then
     score)           score "${1:-}" ;;
     stream)          stream "${1:-}" ;;
     regression)      regression ;;
+    warm)            warm ;;
+    spend)           spend ;;
     reset)           reset ;;
     *)               err "unknown command: $cmd"; exit 1 ;;
   esac

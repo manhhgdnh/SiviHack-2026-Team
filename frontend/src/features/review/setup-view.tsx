@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import type { Criterion, WeightSuggestion } from "@/api/schema"
 import { SAMPLES, type SampleId } from "@/api/fixtures/documents"
 
-import { CriteriaSetup } from "./criteria-setup"
+import { CriteriaSetup, type SuggestState } from "./criteria-setup"
 import { WitnessInput } from "./witness-input"
 
 export function SetupView({
@@ -17,7 +17,9 @@ export function SetupView({
   onCriteria,
   onSuggest,
   suggestions,
-  suggesting,
+  suggestState,
+  suggestError,
+  extracted,
   onRun,
   onSample,
   activeSample,
@@ -31,14 +33,18 @@ export function SetupView({
   onCriteria: (next: Criterion[]) => void
   onSuggest: () => void
   suggestions: WeightSuggestion[] | null
-  suggesting: boolean
+  suggestState: SuggestState
+  suggestError: string | null
+  extracted: { requirements: number; constraints: number } | null
   onRun: () => void
   onSample: (id: SampleId) => void
   activeSample: SampleId | null
   error: string | null
 }) {
   const [openCriteria, setOpenCriteria] = useState(true)
-  const ready = rfp.trim().length > 0 && proposal.trim().length > 0
+  const rfpEmpty = rfp.trim().length === 0
+  // The proposal is the only required witness: the backend scores without an RFP.
+  const ready = proposal.trim().length > 0
   const enabled = criteria.filter((c) => c.enabled).length
 
   return (
@@ -59,7 +65,7 @@ export function SetupView({
             </p>
           </div>
 
-          <div className="flex shrink-0 flex-wrap items-center gap-3">
+          <div className="flex shrink-0 flex-col items-end gap-2">
             <button
               type="button"
               onClick={onRun}
@@ -73,6 +79,11 @@ export function SetupView({
               Run review
               <ArrowRight className="size-3.5" />
             </button>
+            {ready && rfpEmpty && (
+              <p role="status" className="text-cloth-text/75 text-[0.78rem]">
+                No RFP loaded — the draft will be scored on its own.
+              </p>
+            )}
           </div>
         </div>
       </header>
@@ -80,12 +91,11 @@ export function SetupView({
       {error && (
         <div
           role="alert"
+          aria-label="Review failed"
           className="border-cloth-stop bg-cloth-stop/8 border-b"
         >
           <div className="mx-auto max-w-[112rem] px-5 py-3 sm:px-8">
-            <p className="text-cloth-stop text-[0.85rem] font-semibold">
-              {error}
-            </p>
+            <p className="text-cloth-stop text-[0.85rem] font-semibold">{error}</p>
           </div>
         </div>
       )}
@@ -119,6 +129,7 @@ export function SetupView({
             placeholder="Paste the client's RFP or brief here, or upload the .md file."
             value={rfp}
             onChange={onRfp}
+            optional
           />
           <WitnessInput
             of="P"
@@ -161,7 +172,10 @@ export function SetupView({
                 onChange={onCriteria}
                 onSuggest={onSuggest}
                 suggestions={suggestions}
-                suggesting={suggesting}
+                suggestState={suggestState}
+                suggestError={suggestError}
+                extracted={extracted}
+                rfpEmpty={rfpEmpty}
               />
             </div>
           )}

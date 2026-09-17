@@ -1,11 +1,14 @@
-import { useState } from "react"
-import { Loader2, Plus, X } from "lucide-react"
+import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import type { Criterion, WeightSuggestion } from "@/api/schema"
 import { rebalance, redistribute } from "@/lib/score"
 import { Slider } from "@/components/ui/slider"
 import { Switch } from "@/components/ui/switch"
+
+export type SuggestState = "idle" | "pending" | "error" | "success"
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`
 
 /**
  * Weights are shares of a fixed 100 and they compete. Raising one takes from
@@ -53,45 +56,31 @@ function BudgetRule({ criteria }: { criteria: Criterion[] }) {
   )
 }
 
+/** The seven criteria: include or not, and how much each counts. */
 export function CriteriaSetup({
   criteria,
   onChange,
   onSuggest,
   suggestions,
-  suggesting,
+  suggestState,
+  suggestError,
+  extracted,
+  rfpEmpty,
   disabled,
 }: {
   criteria: Criterion[]
   onChange: (next: Criterion[]) => void
   onSuggest: () => void
   suggestions: WeightSuggestion[] | null
-  suggesting: boolean
+  suggestState: SuggestState
+  suggestError: string | null
+  /** What the model read from the RFP when it suggested the weights. */
+  extracted: { requirements: number; constraints: number } | null
+  rfpEmpty: boolean
   disabled?: boolean
 }) {
-  const [adding, setAdding] = useState(false)
-  const [draft, setDraft] = useState({ name: "", whatToCheck: "" })
-
-  const reasonFor = (id: string) =>
-    suggestions?.find((s) => s.criterionId === id)?.reason ?? null
-
-  const addCustom = () => {
-    if (!draft.name.trim()) return
-    const next = rebalance([
-      ...criteria,
-      {
-        id: `c-custom-${Date.now()}`,
-        name: draft.name.trim(),
-        whatToCheck:
-          draft.whatToCheck.trim() || "No check described for this criterion.",
-        enabled: true,
-        weight: Math.round(100 / (criteria.filter((c) => c.enabled).length + 1)),
-        custom: true,
-      },
-    ])
-    onChange(next)
-    setDraft({ name: "", whatToCheck: "" })
-    setAdding(false)
-  }
+  const reasonFor = (id: string) => suggestions?.find((s) => s.criterionId === id)?.reason ?? null
+  const pending = suggestState === "pending"
 
   return (
     <div>
@@ -101,20 +90,27 @@ export function CriteriaSetup({
         <button
           type="button"
           onClick={onSuggest}
-          disabled={disabled || suggesting}
+          disabled={disabled || pending || rfpEmpty}
           className={cn(
             "editorial border-ink text-ink inline-flex items-center gap-2 border px-3 py-2",
             "hover:bg-ink hover:text-paper cursor-pointer transition-colors",
             "disabled:cursor-not-allowed disabled:opacity-50",
           )}
         >
-          {suggesting && <Loader2 className="size-3.5 animate-spin" />}
-          Suggest weights from the RFP
+          {pending && <Loader2 className="size-3.5 animate-spin" />}
+          {pending ? "Reading the RFP…" : "Suggest weights from the RFP"}
         </button>
-        {suggestions && (
-          <p className="text-ink-2 max-w-prose text-[0.78rem]">
-            Read off the RFP&rsquo;s own evaluation section. Each reason below
-            cites the passage it came from.
+        {rfpEmpty && <span className="text-ink-3 text-[0.78rem]">Paste the RFP first.</span>}
+        {suggestState === "error" && (
+          <p role="alert" aria-label="Weight suggestion failed" className="text-ink text-[0.85rem]">
+            Could not read the RFP for weights: {suggestError}. The weights are unchanged.
+          </p>
+        )}
+        {suggestState === "success" && extracted && (
+          <p role="status" className="text-ink-2 max-w-prose text-[0.78rem]">
+            Read from the RFP: {plural(extracted.requirements, "requirement")},{" "}
+            {plural(extracted.constraints, "constraint")}. Each reason below cites the passage it
+            came from.
           </p>
         )}
       </div>
@@ -145,22 +141,13 @@ export function CriteriaSetup({
                     aria-label={`Include ${c.name}`}
                     onCheckedChange={(on) =>
                       onChange(
-                        rebalance(
-                          criteria.map((x) =>
-                            x.id === c.id ? { ...x, enabled: on } : x,
-                          ),
-                        ),
+                        rebalance(criteria.map((x) => (x.id === c.id ? { ...x, enabled: on } : x))),
                       )
                     }
                     className="mt-0.5 shrink-0"
                   />
                   <div className="min-w-0">
-                    <h3 className="text-ink text-[0.9rem] leading-tight font-semibold">
-                      {c.name}
-                      {c.custom && (
-                        <span className="editorial text-ink-3 ml-2">custom</span>
-                      )}
-                    </h3>
+                    <h3 className="text-ink text-[0.9rem] leading-tight font-semibold">{c.name}</h3>
                     <p className="text-ink-2 mt-0.5 max-w-[62ch] text-[0.78rem] leading-snug">
                       {c.whatToCheck}
                     </p>
@@ -170,19 +157,6 @@ export function CriteriaSetup({
                       </p>
                     )}
                   </div>
-                  {c.custom && (
-                    <button
-                      type="button"
-                      aria-label={`Remove ${c.name}`}
-                      disabled={disabled}
-                      onClick={() =>
-                        onChange(rebalance(criteria.filter((x) => x.id !== c.id)))
-                      }
-                      className="text-ink-3 hover:text-ink ml-auto cursor-pointer transition-colors"
-                    >
-                      <X className="size-4" />
-                    </button>
-                  )}
                 </div>
               </div>
 
@@ -194,9 +168,7 @@ export function CriteriaSetup({
                   step={1}
                   disabled={disabled || !c.enabled}
                   aria-label={`Weight for ${c.name}`}
-                  onValueChange={([next]) =>
-                    onChange(redistribute(criteria, c.id, next))
-                  }
+                  onValueChange={([next]) => onChange(redistribute(criteria, c.id, next))}
                   className="min-w-0 flex-1"
                 />
                 <span
@@ -210,64 +182,6 @@ export function CriteriaSetup({
           )
         })}
       </ul>
-
-      {adding ? (
-        <div className="border-rule mt-4 border p-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="editorial text-ink-2 mb-1.5 block">Name</span>
-              <input
-                autoFocus
-                value={draft.name}
-                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                placeholder="Sustainability commitments"
-                className="border-rule bg-paper focus-visible:border-ink w-full border px-2.5 py-1.5 text-[0.85rem] focus-visible:outline-none"
-              />
-            </label>
-            <label className="block">
-              <span className="editorial text-ink-2 mb-1.5 block">
-                What to check
-              </span>
-              <input
-                value={draft.whatToCheck}
-                onChange={(e) =>
-                  setDraft({ ...draft, whatToCheck: e.target.value })
-                }
-                onKeyDown={(e) => e.key === "Enter" && addCustom()}
-                placeholder="Does it address the environmental clauses?"
-                className="border-rule bg-paper focus-visible:border-ink w-full border px-2.5 py-1.5 text-[0.85rem] focus-visible:outline-none"
-              />
-            </label>
-          </div>
-          <div className="mt-3 flex gap-2">
-            <button
-              type="button"
-              onClick={addCustom}
-              disabled={!draft.name.trim()}
-              className="editorial bg-ink text-paper hover:bg-ink-2 cursor-pointer px-3 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Add criterion
-            </button>
-            <button
-              type="button"
-              onClick={() => setAdding(false)}
-              className="editorial text-ink-2 hover:text-ink cursor-pointer px-3 py-2 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={() => setAdding(true)}
-          className="editorial text-ink-2 hover:text-ink mt-4 inline-flex cursor-pointer items-center gap-2 transition-colors disabled:opacity-50"
-        >
-          <Plus className="size-3.5" />
-          Add a custom criterion
-        </button>
-      )}
     </div>
   )
 }

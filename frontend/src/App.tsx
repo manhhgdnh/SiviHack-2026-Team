@@ -1,8 +1,11 @@
 import { useMemo, useState } from "react"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 
 import type { Criterion, Issue, Witness } from "@/api/schema"
-import { ReviewError, runReview, suggestWeights } from "@/api/client"
+import { suggestWeights } from "@/api/client"
+import { ReviewError } from "@/api/errors"
+import { EMPTY_PROGRESS } from "@/api/progress"
+import { reviewKey, useReview, type RunRequest } from "@/api/use-review"
 import { RFP_TEXT, SAMPLES, type SampleId } from "@/api/fixtures/documents"
 import { BASE_CRITERIA } from "@/api/fixtures/criteria"
 import { rebalance, verdictFor, weightedScore } from "@/lib/score"
@@ -14,39 +17,49 @@ import { ReviewView } from "@/features/review/review-view"
 import { RunTrace } from "@/features/review/run-trace"
 import { SetupView } from "@/features/review/setup-view"
 
+const STAGE_PHRASE: Record<string, string> = {
+  sections: "reading the documents",
+  requirements: "extracting the client's requirements",
+  coverage: "collating the draft",
+  scores: "scoring the criteria",
+  findings: "drafting the fixes",
+}
+
+/** The one sentence the setup rail prints for a failed run. */
+function describe(error: unknown): string {
+  if (error instanceof ReviewError) {
+    if (error.stage && error.code === "upstream") {
+      const phrase = STAGE_PHRASE[error.stage] ?? error.stage
+      return `The review stopped while ${phrase}: ${error.message}. Nothing was saved — press Run review to try again.`
+    }
+    return error.message
+  }
+  return "The review could not be completed. Check both documents and try again."
+}
+
 export default function App() {
+  const queryClient = useQueryClient()
   const [rfp, setRfp] = useState("")
   const [proposal, setProposal] = useState("")
   const [criteria, setCriteria] = useState<Criterion[]>(BASE_CRITERIA)
-  const [step, setStep] = useState(0)
   const [issueVerdicts, setIssueVerdicts] = useState<Record<string, IssueVerdict>>({})
   const [editing, setEditing] = useState(false)
   const [activeSample, setActiveSample] = useState<SampleId | null>(null)
   const [appliedFixes, setAppliedFixes] = useState<Record<string, boolean>>({})
-  /** The draft the current review was computed against, for staleness. */
-  const [reviewedAgainst, setReviewedAgainst] = useState("")
+  /** The run on the table: the documents and weights as they were when Run was pressed. */
+  const [run, setRun] = useState<RunRequest | null>(null)
 
-  const review = useMutation({
-    mutationFn: (input: { rfp: string; proposal: string; criteria: Criterion[] }) =>
-      runReview(input, { onStep: setStep }),
-    onMutate: () => {
-      setStep(0)
-      setEditing(false)
-    },
-    onSuccess: (_data, input) => {
-      setIssueVerdicts({})
-      setAppliedFixes({})
-      setReviewedAgainst(input.proposal)
-    },
-  })
+  const review = useReview(run)
+  const progress = review.data ?? EMPTY_PROGRESS
+  const result = review.data?.review ?? null
 
   const weights = useMutation({
     mutationFn: (source: string) => suggestWeights(source),
-    onSuccess: (suggestions) => {
+    onSuccess: (advice) => {
       setCriteria((current) =>
         rebalance(
           current.map((c) => {
-            const found = suggestions.find((s) => s.criterionId === c.id)
+            const found = advice.suggestions.find((s) => s.criterionId === c.id)
             return found ? { ...c, weight: found.weight } : c
           }),
         ),
@@ -80,14 +93,16 @@ export default function App() {
    * apply would have shifted.
    */
   const applyFix = (issue: Issue) => {
-    setProposal((current) =>
-      insertAfterQuote(current, issue.location?.quote ?? null, issue.suggestedFix),
-    )
+    if (!issue.suggestedFix) return
+    const fix = issue.suggestedFix
+    setProposal((current) => insertAfterQuote(current, issue.location?.quote ?? null, fix))
     setAppliedFixes((current) => ({ ...current, [issue.id]: true }))
   }
 
   const revertFix = (issue: Issue) => {
-    setProposal((current) => current.replace(`\n\n${issue.suggestedFix}`, ""))
+    if (!issue.suggestedFix) return
+    const fix = issue.suggestedFix
+    setProposal((current) => current.replace(`\n\n${fix}`, ""))
     setAppliedFixes((current) => {
       const next = { ...current }
       delete next[issue.id]
@@ -95,42 +110,44 @@ export default function App() {
     })
   }
 
-  const score = review.data ? weightedScore(criteria, review.data.criteria) : 0
+  // Recomputed in code on every render, so a slider drag never costs a model call.
+  const score = result ? weightedScore(criteria, result.criteria) : null
   const verdict = verdictFor(score)
 
-  const errorMessage =
-    review.error instanceof ReviewError
-      ? review.error.message
-      : review.error
-        ? "The review could not be completed. Check both documents and try again."
-        : null
+  const startRun = () => {
+    setEditing(false)
+    setIssueVerdicts({})
+    setAppliedFixes({})
+    setRun({ rfp, proposal, criteria, runId: Date.now() })
+  }
 
-  const run = () => review.mutate({ rfp, proposal, criteria })
+  const stopRun = () => {
+    if (run) void queryClient.cancelQueries({ queryKey: reviewKey(run) })
+    setRun(null)
+  }
 
-  // Loading. The trace shows which step is running, never a blank panel.
-  if (review.isPending) {
-    return <RunTrace active={step} />
+  // Loading. The trace shows which stage is running, never a blank panel.
+  if (review.isFetching) {
+    return <RunTrace progress={progress} hasRfp={run?.rfp.trim() !== ""} onStop={stopRun} />
   }
 
   // Success.
-  if (review.data && !editing) {
+  if (result && !editing) {
     return (
       <CollationProvider>
         <ReviewView
-          review={review.data}
+          review={result}
           criteria={criteria}
           onCriteria={setCriteria}
           witnesses={witnesses}
           score={score}
           verdict={verdict}
           verdicts={issueVerdicts}
-          onVerdict={(id, next) =>
-            setIssueVerdicts((current) => ({ ...current, [id]: next }))
-          }
+          onVerdict={(id, next) => setIssueVerdicts((current) => ({ ...current, [id]: next }))}
           onEdit={() => setEditing(true)}
-          onRerun={run}
-          rerunning={review.isPending}
-          stale={proposal !== reviewedAgainst}
+          onRerun={startRun}
+          rerunning={review.isFetching}
+          stale={run !== null && proposal !== run.proposal}
           appliedFixes={appliedFixes}
           onApply={applyFix}
           onRevert={revertFix}
@@ -154,17 +171,23 @@ export default function App() {
       }}
       criteria={criteria}
       onCriteria={setCriteria}
-      onSuggest={() => weights.mutate(rfp || RFP_TEXT)}
-      suggestions={weights.data ?? null}
-      suggesting={weights.isPending}
-      onRun={run}
+      onSuggest={() => weights.mutate(rfp)}
+      suggestions={weights.data?.suggestions ?? null}
+      suggestState={weights.status}
+      suggestError={weights.error ? describe(weights.error) : null}
+      extracted={
+        weights.data
+          ? { requirements: weights.data.requirements, constraints: weights.data.constraints }
+          : null
+      }
+      onRun={startRun}
       onSample={(id) => {
         setRfp(RFP_TEXT)
         setProposal(SAMPLES[id].text)
         setActiveSample(id)
       }}
       activeSample={activeSample}
-      error={errorMessage}
+      error={review.isError ? describe(review.error) : null}
     />
   )
 }

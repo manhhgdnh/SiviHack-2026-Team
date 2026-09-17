@@ -5,7 +5,7 @@ import type { PluggableList } from "unified"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import type { Witness } from "@/api/schema"
+import type { Citation, Witness } from "@/api/schema"
 import { remarkLemma, type LemmaQuote } from "@/lib/remark-lemma"
 
 import { Siglum } from "./siglum"
@@ -264,7 +264,7 @@ export function WitnessPane({
   const quotes = useMemo<LemmaQuote[]>(
     () => [
       ...marks
-        .filter((m) => m.witness === witness.siglum)
+        .filter((m): m is Citation & { quote: string } => m.witness === witness.siglum && m.quote !== null)
         .map((m) => ({ quote: m.quote, kind: "mark" as const, tone: tone ?? undefined })),
       ...(pendingQuote ? [{ quote: pendingQuote, kind: "pending" as const }] : []),
     ],

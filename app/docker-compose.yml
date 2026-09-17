@@ -1,8 +1,11 @@
-# Proposal Scorer v0 (BACKEND.md §4). Run from this folder: `docker compose up -d --build`.
+# Proposal Scorer. Run from this folder: `docker compose up -d --build` (or `./run.sh up`).
 # Only nginx gets a host port; browser → nginx:80 → /api/* backend, /* frontend.
+# Gemini is the default provider; the local Ollama service only starts with
+# `docker compose --profile ollama up` (LLM_PROVIDER=ollama in .env).
 services:
   ollama:
     image: ollama/ollama:latest
+    profiles: ["ollama"]
     volumes:
       - ollama_models:/root/.ollama
     # Published so `uv run` on the host can reach it too; drop for prod.
@@ -19,20 +22,16 @@ services:
     env_file:
       - path: .env
         required: false            # defaults in config.py apply until you `cp .env.example .env`
-    depends_on:
-      ollama:
-        condition: service_started
     # no host port — nginx reaches it on the network as backend:8000
     expose:
       - "8000"
     volumes:
-      - ./data:/app/data             # extraction cache + regression outputs persist
+      - ./data:/app/data             # LLM cache + usage ledger + regression outputs persist
       - ../sample_data:/sample_data:ro   # the 6 sponsor .md files, for tests/regression.py
 
   frontend:
-    # Placeholder so nginx has something on "/". The real app is ../frontend; give it a
-    # Dockerfile that serves on :3000 and point `build` there.
-    build: ./frontend-placeholder
+    # The Vite build served by nginx on :3000 (see ../frontend/Dockerfile).
+    build: ../frontend
     expose:
       - "3000"
     depends_on:

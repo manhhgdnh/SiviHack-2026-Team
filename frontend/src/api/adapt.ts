@@ -1,176 +1,217 @@
 import type {
+  ConstraintKind,
+  CoverageStatus,
+  DocOutline,
+  FindingType,
+  ScoringResult,
+  Severity as Graded,
+  Source,
+  WeightSuggestion as Suggested,
+} from "@/api/generated/types.gen"
+import type {
   Citation,
-  Criterion,
+  Constraint,
+  CriterionId,
   CriterionScore,
   Issue,
   Requirement,
   RequirementStatus,
   Review,
   Severity,
-  Siglum,
+  WeightSuggestion,
 } from "@/api/schema"
-import type { RiskFinding, RiskType, ScoringResult } from "@/api/backend"
-import { excerpt, findQuote, plain, sectionOf } from "@/lib/quote"
-import { verdictFor, weightedScore } from "@/lib/score"
+import { excerpt, plain } from "@/lib/quote"
+import { verdictFor } from "@/lib/score"
 
 /**
- * The backend speaks in requirements, coverage, scores and risks. The edition
- * speaks in issues, each with a lemma and a citation. This is the one place
- * the two vocabularies meet.
+ * The backend speaks in requirements, coverage, violations, findings and scores. The
+ * edition speaks in issues, each with a lemma and a citation. This is the one place the two
+ * vocabularies meet, and every mapping is a table, not a rule.
  */
 
-const CRITERION: Record<string, string> = {
-  problem_understanding: "c-problem",
-  scope_clarity: "c-scope",
-  pricing_clarity: "c-pricing",
-  timeline_clarity: "c-timeline",
-  completeness: "c-completeness",
-  tone_persuasiveness: "c-tone",
-  risk_transparency: "c-risk",
+/** Which criterion a finding is filed under: the scoring group that owns its type. */
+export const FINDING_CRITERION: Record<FindingType, CriterionId> = {
+  OVERCOMMIT: "risk_transparency",
+  SCOPE_CREEP: "scope_clarity",
+  UNREALISTIC_TIMELINE: "timeline_clarity",
+  PRICING_MISMATCH: "pricing_clarity",
+  VAGUENESS: "scope_clarity",
+  INCONSISTENCY: "problem_understanding",
 }
 
-const RISK_CRITERION: Record<RiskType, string> = {
-  OVERCOMMIT: "c-scope",
-  SCOPE_CREEP: "c-scope",
-  UNREALISTIC_TIMELINE: "c-timeline",
-  PRICING_MISMATCH: "c-pricing",
-  CONTRADICTION: "c-completeness",
+export const CONSTRAINT_CRITERION: Record<ConstraintKind, CriterionId> = {
+  BUDGET: "pricing_clarity",
+  DEADLINE: "timeline_clarity",
+  TECHNOLOGY: "scope_clarity",
+  SCOPE: "scope_clarity",
+  LEGAL: "risk_transparency",
+  OTHER: "risk_transparency",
 }
 
-/** The words being judged, when the risk is a kind rather than a passage. */
-const RISK_LEMMA: Record<RiskType, string> = {
-  OVERCOMMIT: "a commitment the draft cannot keep",
-  SCOPE_CREEP: "scope beyond what was asked",
-  UNREALISTIC_TIMELINE: "a timeline that cannot hold",
-  PRICING_MISMATCH: "a price that does not fit the brief",
-  CONTRADICTION: "a contradiction of the brief",
+const SEVERITY: Record<Graded, Severity> = { HIGH: "must", MEDIUM: "should", LOW: "optional" }
+const STATUS: Record<CoverageStatus, RequirementStatus> = {
+  ADDRESSED: "addressed",
+  PARTIAL: "partial",
+  MISSING: "missing",
+  CONTRADICTED: "contradicted",
 }
-
-const RISK_SEVERITY: Record<RiskFinding["severity"], Severity> = {
-  HIGH: "must",
-  MEDIUM: "should",
-  LOW: "optional",
+const GAP_SEVERITY: Record<CoverageStatus, Severity> = {
+  ADDRESSED: "optional",
+  PARTIAL: "should",
+  MISSING: "must",
+  CONTRADICTED: "must",
 }
+const SEVERITY_ORDER: Severity[] = ["must", "should", "optional"]
+const KIND_ORDER: Issue["kind"][] = ["violation", "coverage", "finding"]
 
-const ORDER: Severity[] = ["must", "should", "optional"]
+type Cite = (
+  source: Source,
+  sectionId: string | null | undefined,
+  quote: string | null | undefined,
+  grounding?: string | null,
+) => Citation
 
-/** A coverage gap lands on the criterion its requirement is really about. */
-function criterionForGap(rfpQuote: string): string {
-  if (/budget|€|\$|£|price|pricing|cost/i.test(rfpQuote)) return "c-pricing"
-  if (/timeline|deadline|month|week|rollout|pilot/i.test(rfpQuote)) return "c-timeline"
-  if (/risk|assumption|limitation/i.test(rfpQuote)) return "c-risk"
-  return "c-completeness"
-}
-
-export function adapt(
-  result: ScoringResult,
-  input: { rfp: string; proposal: string; criteria: Criterion[] },
-): Review {
-  const cite = (witness: Siglum, text: string, quote: string): Citation => ({
-    witness,
-    section: sectionOf(text, quote) ?? "",
-    quote,
-  })
-  const R = (quote: string) => cite("R", input.rfp, quote)
-  const P = (quote: string) => cite("P", input.proposal, quote)
-
-  const coverage = new Map(result.coverage.map((c) => [c.requirementId, c]))
-  const byId = new Map(result.requirements.map((r) => [r.id, r]))
-
-  const requirements: Requirement[] = result.requirements.map((r) => {
-    const cov = coverage.get(r.id)
+/** Citations resolve their header through the outline, so a chip reads `§3.1 · Pricing`. */
+function citer(outlines: { rfp: DocOutline; proposal: DocOutline }): Cite {
+  return (source, sectionId, quote, grounding) => {
+    const id = sectionId ?? ""
+    const header = id ? (outlines[source].sections.find((s) => s.id === id)?.header ?? "") : ""
     return {
-      id: r.id,
-      ref: r.id.replace(/^r/i, ""),
-      section: r.section ?? sectionOf(input.rfp, r.rfpQuote) ?? "RFP",
-      text: plain(r.rfpQuote),
-      status: (cov?.status.toLowerCase() as RequirementStatus | undefined) ?? "missing",
-      answeredAt: cov?.proposalQuote ? P(cov.proposalQuote) : null,
-      source: R(r.rfpQuote),
-      note: cov?.explanation ?? "The model returned no assessment for this requirement.",
+      witness: source === "rfp" ? "R" : "P",
+      sectionId: id,
+      header,
+      label: id ? (header ? `${id} · ${header}` : id) : "",
+      quote: quote ?? null,
+      fuzzy: grounding === "fuzzy",
+    }
+  }
+}
+
+export function adapt(r: ScoringResult): Review {
+  const cite = citer(r.sections)
+  const reqById = new Map(r.requirements.map((q) => [q.id, q]))
+  const conById = new Map(r.constraints.map((c) => [c.id, c]))
+  const covByReq = new Map(r.coverage.map((c) => [c.requirementId, c]))
+
+  const requirements: Requirement[] = r.requirements.map((q) => {
+    const cov = covByReq.get(q.id)
+    const source = cite("rfp", q.section, q.rfpQuote, q.grounding)
+    return {
+      id: q.id,
+      label: q.label,
+      section: source.header || "RFP",
+      text: plain(q.rfpQuote),
+      status: cov ? STATUS[cov.status] : "missing",
+      answeredAt: cov?.proposalSection
+        ? cite("proposal", cov.proposalSection, cov.proposalQuote, cov.grounding)
+        : null,
+      source,
+      note: cov ? (cov.explanation ?? "") : "The model returned no verdict for this requirement.",
     }
   })
 
+  const constraints: Constraint[] = r.constraints.map((c) => ({
+    id: c.id,
+    kind: c.kind,
+    label: c.label,
+    source: cite("rfp", c.section, c.rfpQuote, c.grounding),
+  }))
+
   const issues: Issue[] = []
-
-  for (const cov of result.coverage) {
-    if (cov.status === "ADDRESSED") continue
-    const req = byId.get(cov.requirementId)
-    const label = req?.label ?? cov.requirementId
+  for (const v of r.constraintViolations) {
+    const con = conById.get(v.constraintId)
     issues.push({
-      id: `cov-${cov.requirementId}`,
-      ref: "",
-      severity: cov.status === "PARTIAL" ? "should" : "must",
-      criterionId: req ? criterionForGap(req.rfpQuote) : "c-completeness",
-      lemma: cov.proposalQuote
-        ? excerpt(cov.proposalQuote)
+      id: `vio-${v.constraintId}`,
+      kind: "violation",
+      severity: "must",
+      criterionId: con ? CONSTRAINT_CRITERION[con.kind] : "risk_transparency",
+      constraintId: v.constraintId,
+      constraintKind: con?.kind ?? "OTHER",
+      graded: SEVERITY[v.severity],
+      lemma: excerpt(v.proposalQuote),
+      quoted: plain(v.proposalQuote),
+      location: cite("proposal", v.proposalSection, v.proposalQuote, v.grounding),
+      against: con ? cite("rfp", con.section, con.rfpQuote, con.grounding) : null,
+      whyItMatters: v.violation,
+      suggestedFix: v.fix,
+    })
+  }
+  for (const c of r.coverage) {
+    if (c.status === "ADDRESSED") continue
+    const q = reqById.get(c.requirementId)
+    const label = q?.label ?? c.requirementId
+    issues.push({
+      id: `cov-${c.requirementId}`,
+      kind: "coverage",
+      status: STATUS[c.status] as Exclude<RequirementStatus, "addressed">,
+      requirementId: c.requirementId,
+      severity: GAP_SEVERITY[c.status],
+      criterionId: "completeness",
+      lemma: c.proposalQuote
+        ? excerpt(c.proposalQuote)
         : `nothing on ${label.charAt(0).toLowerCase()}${label.slice(1)}`,
-      quoted: cov.proposalQuote ? plain(cov.proposalQuote) : null,
-      location: cov.proposalQuote ? P(cov.proposalQuote) : null,
-      against: req ? R(req.rfpQuote) : null,
-      whyItMatters: cov.explanation,
-      suggestedFix: cov.fix ?? "",
+      quoted: c.proposalQuote ? plain(c.proposalQuote) : null,
+      location: c.proposalSection
+        ? cite("proposal", c.proposalSection, c.proposalQuote, c.grounding)
+        : null,
+      against: q ? cite("rfp", q.section, q.rfpQuote, q.grounding) : null,
+      whyItMatters: c.explanation ?? "",
+      suggestedFix: c.fix,
     })
   }
-
-  // A risk on the same passage and the same criterion as a coverage gap is
-  // the same finding seen twice. The coverage entry keeps it, with the
-  // requirement attached, and takes the risk's severity if that is higher.
-  const span = (quote: string | null | undefined) =>
-    quote ? findQuote(input.proposal, quote) : null
-  const restated = (risk: RiskFinding, criterionId: string): boolean => {
-    const a = span(risk.proposalQuote)
-    if (!a) return false
-    const twin = issues.find((issue) => {
-      if (issue.criterionId !== criterionId) return false
-      const b = span(issue.location?.quote)
-      return b !== null && a.start < b.end && b.start < a.end
-    })
-    if (!twin) return false
-    const severity = RISK_SEVERITY[risk.severity] ?? "should"
-    if (ORDER.indexOf(severity) < ORDER.indexOf(twin.severity)) twin.severity = severity
-    return true
-  }
-
-  result.risks.forEach((risk, i) => {
-    const type = risk.type as RiskType
-    if (restated(risk, RISK_CRITERION[type] ?? "c-risk")) return
+  r.findings.forEach((f, i) => {
     issues.push({
-      id: `risk-${i + 1}`,
-      ref: "",
-      severity: RISK_SEVERITY[risk.severity] ?? "should",
-      criterionId: RISK_CRITERION[type] ?? "c-risk",
-      lemma: RISK_LEMMA[type] ?? plain(String(risk.type)).toLowerCase(),
-      quoted: plain(risk.proposalQuote),
-      location: P(risk.proposalQuote),
-      against: risk.rfpQuote ? R(risk.rfpQuote) : null,
-      whyItMatters: risk.explanation,
-      suggestedFix: risk.fix ?? "",
+      id: `fin-${i + 1}`,
+      kind: "finding",
+      findingType: f.type,
+      severity: SEVERITY[f.severity],
+      criterionId: FINDING_CRITERION[f.type],
+      lemma: excerpt(f.proposalQuote),
+      quoted: plain(f.proposalQuote),
+      location: cite("proposal", f.location, f.proposalQuote, f.grounding),
+      against: null,
+      whyItMatters: f.explanation,
+      suggestedFix: f.fix,
     })
   })
+  issues.sort(
+    (a, b) =>
+      SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity) ||
+      KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind),
+  )
 
-  issues.sort((a, b) => ORDER.indexOf(a.severity) - ORDER.indexOf(b.severity))
-  issues.forEach((issue, i) => {
-    issue.ref = String(i + 1)
-  })
+  const criteria: CriterionScore[] = r.scores.map((s) => ({
+    criterionId: s.id,
+    score: s.score,
+    strength: s.strengths,
+    weakness: s.weaknesses,
+    note: s.note,
+    citations: s.citations.map((c) => cite(c.source, c.section, c.quote, c.grounding)),
+  }))
 
-  const criteria: CriterionScore[] = result.scores.flatMap((s) => {
-    const criterionId = CRITERION[s.id]
-    if (!criterionId) return []
-    const cited = s.evidenceQuote
-      ? [s.source === "rfp" ? R(s.evidenceQuote) : P(s.evidenceQuote)]
-      : []
-    return [
-      {
-        criterionId,
-        score: Math.max(1, Math.min(5, Math.round(s.score))),
-        strength: null,
-        weakness: s.rationale,
-        citations: cited,
-      },
-    ]
-  })
+  return {
+    overall: r.overall,
+    verdict: verdictFor(r.overall),
+    criteria,
+    requirements,
+    constraints,
+    issues,
+    suggestedWeights: adaptSuggestions(r.suggestedWeights),
+    signals: r.signals,
+    sections: r.sections,
+    meta: r.meta,
+    partial: r.partial,
+    error: r.error,
+    warnings: r.warnings,
+  }
+}
 
-  const overall = weightedScore(input.criteria, criteria)
-  return { verdict: verdictFor(overall), overall, criteria, requirements, issues }
+/**
+ * Backend weights are relative (1 = neutral); the UI's are shares of 100. Exact shares
+ * here; the app's `rebalance()` settles them to integers that total 100.
+ */
+export function adaptSuggestions(s: Suggested[]): WeightSuggestion[] {
+  const total = s.reduce((sum, x) => sum + x.weight, 0)
+  if (total <= 0) return []
+  return s.map((x) => ({ criterionId: x.criterionId, weight: (x.weight / total) * 100, reason: x.reason }))
 }
