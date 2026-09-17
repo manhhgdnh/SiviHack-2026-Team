@@ -44,7 +44,7 @@ Return ONLY valid JSON, no prose, matching this shape:
 {{
  "coverage":[{{"requirementId":"r1","status":"ADDRESSED|PARTIAL|MISSING|CONTRADICTED","proposalQuote":"verbatim from proposal or null","explanation":"why this status","fix":"one concrete action"}}],
  "scores":[{{"id":"<criterion id>","label":"<criterion name>","score":1-5,"rationale":"specific reason","evidenceQuote":"verbatim from proposal or null","source":"proposal|rfp|null"}}],
- "risks":[{{"type":"OVERCOMMIT|SCOPE_CREEP|UNREALISTIC_TIMELINE|PRICING_MISMATCH|CONTRADICTION","proposalQuote":"verbatim","rfpQuote":"verbatim or null","explanation":"why risky","severity":"HIGH|MEDIUM|LOW"}}]
+ "risks":[{{"type":"OVERCOMMIT|SCOPE_CREEP|UNREALISTIC_TIMELINE|PRICING_MISMATCH|CONTRADICTION","proposalQuote":"verbatim","rfpQuote":"verbatim or null","explanation":"why risky","severity":"HIGH|MEDIUM|LOW","fix":"one concrete action"}}]
 }}
 
 Coverage status meaning:
@@ -61,7 +61,7 @@ Rules:
 - Emit exactly one score object per criterion, all 7, ids spelled exactly as above.
 - If a requirement is MISSING, proposalQuote = null.
 - fix must be concrete and actionable (name the section and what to add/change).
-- risks: flag overpromising, scope creep beyond the ask, timelines/prices implausible for the scope, or direct contradictions of a requirement. Empty list if none.
+- risks: flag overpromising, scope creep beyond the ask, timelines/prices implausible for the scope, or direct contradictions of a requirement. Empty list if none. Each risk carries a fix: the concrete change to the proposal that removes it.
 
 REQUIREMENTS:
 {reqs_json}

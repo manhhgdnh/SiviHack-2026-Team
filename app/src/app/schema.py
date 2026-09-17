@@ -66,6 +66,7 @@ class RiskFinding(BaseModel):
     rfpQuote: str | None = None
     explanation: str
     severity: Severity
+    fix: str = ""  # one concrete action that removes the risk
     grounded: bool = False
 
 
