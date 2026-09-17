@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from app import config, pipeline
+from app import config, pipeline, usage
 from app.llm import Completion, LlmProvider
 from app.prompts import (
     GROUPS,
@@ -456,6 +456,24 @@ def test_extract_requirements_shares_the_cache_with_a_full_run(cache: Path):
     assert p.calls.count("extract") == 1 and done.meta.extractCached is True
     again = asyncio.run(pipeline.extract_requirements(RFP, provider=p))
     assert again.extractCached is True and p.calls.count("extract") == 1
+
+
+def test_budget_guard_stops_a_real_call_but_not_a_cache_hit(
+    cache: Path, split: None, monkeypatch: pytest.MonkeyPatch
+):
+    p = FakeProvider()
+    asyncio.run(pipeline.score_proposal(RFP, OVER, provider=p))  # fills the cache: 5 calls
+    monkeypatch.setattr(usage, "total_usd", lambda: 9.0)
+    monkeypatch.setattr(config, "BUDGET_USD", 5.0)
+    again = asyncio.run(pipeline.score_proposal(RFP, OVER, provider=p))
+    assert len(p.calls) == 5 and again.meta.scoreCached  # hits need no budget
+    # a new proposal: extraction is cached, the coverage call is refused → partial, no call
+    partial = asyncio.run(pipeline.score_proposal(RFP, OVER + "\n\n## More\nx", provider=p))
+    assert partial.partial and "BudgetExceeded" in (partial.error or "") and len(p.calls) == 5
+    # a new RFP: call 1 itself is refused → the run fails outright
+    with pytest.raises(usage.BudgetExceeded):
+        asyncio.run(pipeline.score_proposal(RFP + "\n\n## More\nx", OVER, provider=p))
+    assert len(p.calls) == 5
 
 
 def test_cache_key_includes_prompt_version_and_model(cache: Path, monkeypatch: pytest.MonkeyPatch):

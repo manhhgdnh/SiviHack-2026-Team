@@ -9,7 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import TypeAdapter
 
-from app import main
+from app import main, usage
 from app.aggregate import normalize_weights
 from app.main import app
 from app.schema import (
@@ -196,3 +196,12 @@ def test_rfp_extract_maps_success_and_failure(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(main, "extract_requirements", boom)
     r = client.post("/rfp/extract", json={"rfp": "# RFP"})
     assert r.status_code == 502 and "gemini down" in r.json()["detail"]
+
+
+def test_budget_exhaustion_is_a_502(monkeypatch: pytest.MonkeyPatch):
+    async def broke(rfp, proposal, weights=None):
+        raise usage.BudgetExceeded("LLM budget reached: $5.01 of $5.00 spent")
+
+    monkeypatch.setattr(main, "score_proposal", broke)
+    r = TestClient(app).post("/score", json={"rfp": "r", "proposal": "p"})
+    assert r.status_code == 502 and "budget" in r.json()["detail"].lower()

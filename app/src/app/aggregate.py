@@ -14,6 +14,7 @@ from app.schema import (
     Citation,
     ConstraintViolation,
     CoverageItem,
+    CriterionId,
     CriterionScore,
     Finding,
     Requirement,
@@ -25,7 +26,7 @@ _COV = {"CONTRADICTED": 3, "MISSING": 2, "PARTIAL": 1, "ADDRESSED": 0}
 COMPLETENESS_CREDIT = {"ADDRESSED": 1.0, "PARTIAL": 0.5, "MISSING": 0.0, "CONTRADICTED": 0.0}
 
 
-def normalize_weights(weights: Mapping[str, float] | None) -> Weights:
+def normalize_weights(weights: Mapping[str, float] | Mapping[CriterionId, float] | None) -> Weights:
     weights = weights or {}
     return {c: float(weights.get(c, 1.0)) for c in CRITERIA}
 

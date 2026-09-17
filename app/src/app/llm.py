@@ -13,6 +13,7 @@ import json
 import logging
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, NamedTuple
 
 import httpx
@@ -286,7 +287,12 @@ class GeminiProvider(LlmProvider):
 
 
 def get_provider() -> LlmProvider:
-    return GeminiProvider() if config.LLM_PROVIDER == "gemini" else OllamaProvider()
+    from app.replay import RecordingProvider, ReplayProvider  # replay imports this module
+
+    if config.LLM_PROVIDER == "replay":
+        return ReplayProvider()
+    p = GeminiProvider() if config.LLM_PROVIDER == "gemini" else OllamaProvider()
+    return RecordingProvider(p, Path(config.RECORD_DIR)) if config.RECORD_DIR else p
 
 
 # ---- validated call ----------------------------------------------------------------------

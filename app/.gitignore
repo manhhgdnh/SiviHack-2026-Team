@@ -10,6 +10,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env.replay
 
 # Runtime cache (RFP extractions + regression outputs)
 data/cache/

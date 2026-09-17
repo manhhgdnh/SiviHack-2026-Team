@@ -1,12 +1,16 @@
-"""Per-call usage log: one CSV row per LLM call with token counts and cost, and a warning
-once the day's spend passes the ceiling. It gives the pitch its number ("one review is
-about $0.10") and catches a runaway loop while it is still cheap."""
+"""Per-call usage log: one CSV row per LLM call with token counts and cost, a warning once
+the day's spend passes the ceiling, and a hard stop at LLM_BUDGET_USD. It gives the pitch its
+number ("one review is about $0.10") and makes a runaway loop physically unable to spend.
+
+    uv run --env-file .env python -m app.usage    # today / total / budget
+"""
 
 import csv
 import logging
 from datetime import date, datetime
 from pathlib import Path
 
+from app import config
 from app.llm import TokenUsage
 
 log = logging.getLogger(__name__)
@@ -36,6 +40,30 @@ def today_usd() -> float:
         return sum(float(r["usd"]) for r in csv.DictReader(f) if r["time"].startswith(day))
 
 
+def total_usd() -> float:
+    """All-time spend on this machine (the project budget spans midnight)."""
+    if not FILE.exists():
+        return 0.0
+    with FILE.open(newline="") as f:
+        return sum(float(r["usd"]) for r in csv.DictReader(f))
+
+
+class BudgetExceeded(RuntimeError):
+    """LLM_BUDGET_USD reached: refuse to make another real call."""
+
+
+def check_budget() -> None:
+    """Called before every real call; cache hits never get here. Blank = unlimited."""
+    if config.BUDGET_USD is None:
+        return
+    spent = total_usd()
+    if spent >= config.BUDGET_USD:
+        raise BudgetExceeded(
+            f"LLM budget reached: ${spent:.2f} of ${config.BUDGET_USD:.2f} spent (see {FILE}); "
+            "raise LLM_BUDGET_USD in .env to continue"
+        )
+
+
 def record(call: str, model: str, t: TokenUsage) -> None:
     """Append one row; a provider that reports no tokens (Ollama) leaves no row."""
     global _warned
@@ -57,3 +85,8 @@ def record(call: str, model: str, t: TokenUsage) -> None:
             spent,
             DAILY_CEILING_USD,
         )
+
+
+if __name__ == "__main__":
+    limit = "unlimited" if config.BUDGET_USD is None else f"${config.BUDGET_USD:.2f}"
+    print(f"today ${today_usd():.3f}   total ${total_usd():.3f}   budget {limit}")

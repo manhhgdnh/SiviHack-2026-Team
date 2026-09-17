@@ -45,3 +45,14 @@ DROP_UNGROUNDED = _flag(
     "DROP_UNGROUNDED", "true"
 )  # true = drop unverified quotes; false = keep + flag
 USE_CACHE = _flag("USE_CACHE", "true")  # cache every LLM call on disk (data/cache)
+
+# ---- replay / recording (tests, offline UI work, the wifi-down demo) ----
+REPLAY_DIR = env("LLM_REPLAY_DIR")  # "" = app/tests/fixtures/replay
+# replay only: make these call kinds answer invalid JSON, e.g. "coverage" or "group:risk"
+REPLAY_FAIL = {k.strip() for k in env("LLM_REPLAY_FAIL").split(",") if k.strip()}
+REPLAY_DELAY_MS = int(env("LLM_REPLAY_DELAY_MS", "0"))  # slow replay down to watch the trace
+RECORD_DIR = env("LLM_RECORD_DIR")  # set → wrap the real provider and record every miss
+
+# ---- spend guard: all-time total of data/usage.csv on this machine; blank = unlimited ----
+_budget = env("LLM_BUDGET_USD").strip()
+BUDGET_USD: float | None = float(_budget) if _budget else None

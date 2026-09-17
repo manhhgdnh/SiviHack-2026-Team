@@ -131,6 +131,7 @@ async def cached_call[T: BaseModel](
             attempts=0, truncated=st.get("truncated", 0), repaired=st.get("repaired", 0)
         )
         return model_cls.model_validate(cached["value"]), stats, True
+    usage.check_budget()  # a hit above never reaches here: the cache keeps working at $0
     value, stats = await call_json(provider, prompt, model_cls, reasoning=reasoning)
     usage.record(kind, provider.model, stats.tokens)
     _cache_put(

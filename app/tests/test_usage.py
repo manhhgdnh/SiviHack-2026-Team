@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from app import usage
+from app import config, usage
 from app.llm import TokenUsage
 
 
@@ -42,3 +42,26 @@ def test_ceiling_warns_once(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, cap
         usage.record("score", "gemini-x", TokenUsage(output=5000))  # $0.01875
         usage.record("score", "gemini-x", TokenUsage(output=5000))
     assert sum("ceiling" in r.message for r in caplog.records) == 1
+
+
+def test_total_usd_sums_every_day(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    f = _to_tmp(monkeypatch, tmp_path)
+    f.write_text(
+        "time,call,model,prompt,output,thinking,cached,usd\n2026-09-01T10:00:00,x,m,0,0,0,0,1.5\n"
+    )
+    usage.record("score", "m", TokenUsage(output=1_000_000))  # +3.75 today
+    assert usage.total_usd() == pytest.approx(5.25) and usage.today_usd() == pytest.approx(3.75)
+
+
+def test_check_budget_raises_at_the_ceiling_and_is_off_when_blank(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    _to_tmp(monkeypatch, tmp_path)
+    monkeypatch.setattr(config, "BUDGET_USD", 0.02)
+    usage.record("score", "m", TokenUsage(output=4000))  # $0.015
+    usage.check_budget()  # under
+    usage.record("score", "m", TokenUsage(output=4000))  # $0.030
+    with pytest.raises(usage.BudgetExceeded, match="LLM_BUDGET_USD"):
+        usage.check_budget()
+    monkeypatch.setattr(config, "BUDGET_USD", None)
+    usage.check_budget()
