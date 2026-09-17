@@ -57,11 +57,11 @@ from app.schema import (
     CoverageEvent,
     CoverageLlmOutput,
     CriterionScore,
-    DocOutline,
     EventPayload,
     Finding,
     FindingsEvent,
     GroupLlmOutput,
+    Outlines,
     RequirementsEvent,
     RfpExtraction,
     ScoreLlmOutput,
@@ -69,11 +69,10 @@ from app.schema import (
     ScoringMeta,
     ScoringMode,
     ScoringResult,
-    SectionsEvent,
-    Source,
+    Weights,
 )
 from app.signals import compute_signals, render_signals
-from app.splitter import parse
+from app.splitter import Document, parse
 
 log = logging.getLogger(__name__)
 
@@ -83,10 +82,14 @@ CACHE = Path("data/cache")
 type Event = tuple[str, EventPayload]
 
 
+# Providers whose calls are (or replay) Gemini's split-mode prompts.
+SPLIT_PROVIDERS = frozenset({"gemini", "replay"})
+
+
 def split_mode(provider: LlmProvider) -> bool:
     if config.SPLIT_CALLS in ("true", "false"):
         return config.SPLIT_CALLS == "true"
-    return provider.name == "gemini"
+    return provider.name in SPLIT_PROVIDERS
 
 
 # ---- cache ---------------------------------------------------------------------------------
@@ -147,10 +150,41 @@ def _reasoning(value: str) -> str | None:
     return value.strip() or None
 
 
+async def extract_rfp(
+    rdoc: Document, provider: LlmProvider
+) -> tuple[RfpExtraction, CallStats, bool, GroundingStats]:
+    """LLM call 1 plus grounding, behind the cache keyed on the RFP text alone, so
+    POST /rfp/extract and a later full run share one LLM call."""
+    if not rdoc.sections:  # no RFP: nothing to extract, coverage will be empty
+        return RfpExtraction(requirements=[], constraints=[]), CallStats(), False, GroundingStats()
+    ext, st, hit = await cached_call(
+        "extract",
+        (rdoc.text,),
+        RfpExtraction,
+        build_extract_prompt(rdoc),
+        provider,
+        _reasoning(config.REASONING_EFFORT_COVERAGE),
+    )
+    ext, gstats = ground_extraction(ext, rdoc)
+    return ext, st, hit, gstats
+
+
+async def extract_requirements(rfp: str, provider: LlmProvider | None = None) -> RequirementsEvent:
+    """POST /rfp/extract: call 1 only. Same cache key as a full run, so a run right after
+    costs nothing extra."""
+    ext, _, hit, _ = await extract_rfp(parse(rfp), provider or get_provider())
+    return RequirementsEvent(
+        requirements=ext.requirements,
+        constraints=ext.constraints,
+        suggestedWeights=ext.suggestedWeights,
+        extractCached=hit,
+    )
+
+
 async def run(
     rfp: str,
     proposal: str,
-    weights: dict[str, float] | None = None,
+    weights: Weights | None = None,
     provider: LlmProvider | None = None,
 ) -> AsyncIterator[Event]:
     t0 = time.time()
@@ -158,28 +192,15 @@ async def run(
     norm_weights = normalize_weights(weights)
     mode: ScoringMode = "split" if split_mode(provider) else "merged"
     calls = CallStats()
-    gstats = GroundingStats()
     warnings: list[str] = []
 
     rdoc, pdoc = parse(rfp), parse(proposal)
-    sections: dict[Source, DocOutline] = {"rfp": rdoc.outline(), "proposal": pdoc.outline()}
-    yield "sections", SectionsEvent(rfp=sections["rfp"], proposal=sections["proposal"])
+    sections = Outlines(rfp=rdoc.outline(), proposal=pdoc.outline())
+    yield "sections", sections
 
     # -- call 1 ----------------------------------------------------------------------------
-    extract_hit = False
-    if rdoc.sections:
-        ext, st, extract_hit = await cached_call(
-            "extract",
-            (rdoc.text,),
-            RfpExtraction,
-            build_extract_prompt(rdoc),
-            provider,
-            _reasoning(config.REASONING_EFFORT_COVERAGE),
-        )
-        calls.add(st)
-        ext, gstats = ground_extraction(ext, rdoc)
-    else:  # no RFP: nothing to extract, coverage will be empty, completeness null
-        ext = RfpExtraction(requirements=[], constraints=[])
+    ext, st, extract_hit, gstats = await extract_rfp(rdoc, provider)
+    calls.add(st)
     has_rfp = bool(ext.requirements or ext.constraints)
     yield (
         "requirements",
@@ -343,7 +364,7 @@ async def run(
 async def score_proposal(
     rfp: str,
     proposal: str,
-    weights: dict[str, float] | None = None,
+    weights: Weights | None = None,
     provider: LlmProvider | None = None,
 ) -> ScoringResult:
     """Blocking form of `run`: the payload of the final "done" event."""

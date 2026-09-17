@@ -6,7 +6,13 @@ from pathlib import Path
 import pytest
 
 from app import config
-from app.grounding import GroundingStats, ground_extraction, ground_scoring, verify
+from app.grounding import (
+    GroundingStats,
+    _ground_citations,
+    ground_extraction,
+    ground_scoring,
+    verify,
+)
 from app.normalize import normalize
 from app.schema import (
     CRITERIA,
@@ -236,10 +242,10 @@ def _llm() -> ScoreLlmOutput:
                 "pricing_clarity",
                 4,
                 citations=[
-                    Citation(source="proposal", section="Pricing"),
-                    Citation(source="rfp", section="§3"),
-                    Citation(source="proposal", section="§99"),  # points nowhere
-                    Citation(source="proposal", section="§4"),  # duplicate of the first
+                    Citation(source="proposal", section="Pricing", quote=None),
+                    Citation(source="rfp", section="§3", quote=None),
+                    Citation(source="proposal", section="§99", quote=None),  # points nowhere
+                    Citation(source="proposal", section="§4", quote=None),  # duplicate of the first
                 ],
             ),
             _score("problem_understanding", 1, weaknesses="duplicate, must be ignored"),
@@ -325,3 +331,24 @@ def test_ground_scoring_keeps_quotes_when_not_dropping_but_never_dangling_pointe
     pricing = next(s for s in llm.scores if s.id == "pricing_clarity")
     assert len(pricing.citations) == 2  # a pointer to a non-existent section is never shown
     assert stats.dropped == 1
+
+
+def test_citation_quotes_are_verified_like_any_other_quote(monkeypatch: pytest.MonkeyPatch):
+    """A score citation quotes the words that justify it: verbatim in the claimed section →
+    verified; verbatim elsewhere → fuzzy and relocated; invented → dropped; a quote-less
+    pointer stays a pointer; duplicates after normalisation collapse."""
+    monkeypatch.setattr(config, "DROP_UNGROUNDED", True)
+    stats = GroundingStats()
+    cits = [
+        Citation(source="proposal", section="§4", quote=P_PRICE_OVER),
+        Citation(source="proposal", section="§2", quote=P_PRICE_OVER),  # wrong section
+        Citation(source="proposal", section="§4", quote=INVENTED),
+        Citation(source="rfp", section="§3", quote=None),
+        Citation(source="proposal", section="Pricing", quote="total project cost: €98,000"),
+    ]
+    kept = _ground_citations(cits, RFP, OVER, stats)
+    assert [(c.source, c.section, c.grounding) for c in kept] == [
+        ("proposal", "§4", "verified"),
+        ("rfp", "§3", "verified"),
+    ]
+    assert stats == GroundingStats(dropped=1, fuzzy=1)

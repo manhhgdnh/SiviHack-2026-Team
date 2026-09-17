@@ -7,7 +7,7 @@ FastAPI backend for the FPT "Proposal Scorer" track, on a **uv** project layout
 ## Pipeline
 
 ```
-POST /score/stream {rfp?, proposal, weights?}            (POST /score = same, blocking)
+POST /score/stream {rfp?, proposal, weights?}            (POST /score = same, blocking; POST /rfp/extract = call 1 only)
 
 1. parse        code   → sections with hierarchical ids (§2, §3.1; ¶n fallback)   → event: sections
 2. LLM call 1   →  requirements[] + constraints[] + suggestedWeights[]              → event: requirements
@@ -93,10 +93,13 @@ and overload (503) responses are retried up to three times with backoff before a
 
 ## Contract
 
-`schema.d.ts` is the loose TypeScript contract (result shape + the six SSE events); the
-strict one is `http://localhost/api/openapi.json`. Section ids in every location field are
-the ones listed in the `sections` event, so the UI can resolve `§4` to "Pricing" and show
-the text a citation points at.
+`app/openapi.json` is the wire contract, exported from the app (`uv run python -m
+app.openapi_export`; `--check` and `tests/test_openapi.py` fail when it is stale). It carries
+the six SSE frames as a `StreamEvent` union on `POST /score/stream`, the 400 / 502 bodies,
+and `POST /rfp/extract` (call 1 alone, sharing the cache with a full run). The frontend
+generates its types and zod schemas from it (`cd ../frontend && npm run api:gen`). Section
+ids in every location field are the ones listed in the `sections` frame, so the UI can
+resolve `§4` to "Pricing"; every quote is verbatim after normalisation, so the UI can mark it.
 
 ## Layout
 

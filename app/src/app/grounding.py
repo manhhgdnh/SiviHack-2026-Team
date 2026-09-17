@@ -171,15 +171,29 @@ def ground_coverage(
 def _ground_citations(
     cits: list[Citation], rfp: Document, proposal: Document, stats: GroundingStats
 ) -> list[Citation]:
-    """A citation is a section pointer: it is verified iff the id exists in that document."""
+    """A citation names a section and quotes the words that justify the score. The quote is
+    checked like every other quote (verbatim → verified, relocated or near → fuzzy with the
+    section corrected, invented → dropped); a quote-less citation is verified iff the section
+    id exists. Duplicates (same source, section and normalised quote) collapse."""
     kept: list[Citation] = []
     for c in cits:
-        sid = _canonical(rfp if c.source == "rfp" else proposal, c.section)
-        if sid is None:
-            stats.dropped += 1
-            continue
-        c.section, c.grounding = sid, "verified"
-        if all(not (k.source == c.source and k.section == sid) for k in kept):
+        doc = rfp if c.source == "rfp" else proposal
+        if c.quote:
+            m = verify(c.quote, doc, c.section)
+            sid = m.section or _canonical(doc, c.section)
+            if sid is None or not stats.add(m):
+                if sid is None:
+                    stats.dropped += 1
+                continue
+            c.section, c.grounding = sid, m.status
+        else:
+            sid = _canonical(doc, c.section)
+            if sid is None:
+                stats.dropped += 1
+                continue
+            c.section, c.grounding = sid, "verified"
+        key = (c.source, c.section, normalize(c.quote))
+        if all((k.source, k.section, normalize(k.quote)) != key for k in kept):
             kept.append(c)
     return kept
 
@@ -192,7 +206,8 @@ def ground_scores(
     proposal: Document,
     stats: GroundingStats,
 ) -> list[CriterionScore]:
-    """Exactly one score per criterion, in CRITERIA order, labels filled, citations checked.
+    """Exactly one score per criterion, in CRITERIA order, labels filled, citations checked
+    (section exists; quote verified like any other).
     First occurrence wins; completeness is always the code-computed one."""
     by_id: dict[str, CriterionScore] = {}
     for s in scores:
@@ -201,7 +216,7 @@ def ground_scores(
     out: list[CriterionScore] = []
     for cid in CRITERIA:
         s = by_id.get(cid) or CriterionScore(
-            id=cid,  # type: ignore[arg-type]
+            id=cid,
             score=None,
             weaknesses="",
             note="not assessable: the model returned no score for this criterion",

@@ -62,7 +62,7 @@ def test_llm_schema_hides_code_owned_fields_and_keeps_reasoning_order():
     assert "score" in cs["required"]  # required-but-nullable: the model must write null
     assert {"type": "null"} in cs["properties"]["score"]["anyOf"]
     # citations are section pointers, not sentences
-    assert set(schema["$defs"]["Citation"]["properties"]) == {"source", "section"}
+    assert set(schema["$defs"]["Citation"]["properties"]) == {"source", "section", "quote"}
     cov = schema["$defs"]["CoverageItem"]["required"]
     assert {"proposalSection", "proposalQuote", "explanation", "fix"} <= set(cov)
 

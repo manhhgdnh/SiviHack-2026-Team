@@ -9,17 +9,37 @@ Three things about the LLM-output models matter more than they look:
   scores. Do not reorder.
 * **Output is kept small.** Quotes appear only where a reader needs the exact words
   (findings, violations, PARTIAL / CONTRADICTED coverage) and are capped at 20 words in the
-  prompt. Citations on scores are section ids, not sentences: the UI already has the text.
+  prompt. A citation on a score is a section id plus the ≤ 20-word quote that justifies it,
+  at most two per criterion.
 * **`grounding` is code-owned.** It is never in the schema sent to the LLM (see
   `llm.llm_schema`); the grounding pass sets it after the fact.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class Model(BaseModel):
+    """Every field with a default is *required* in the response schema (the API always emits
+    it), so the generated TypeScript says `partial: boolean`, not `partial?: boolean`.
+    Validation schemas (requests, `llm.llm_schema`) keep their defaults optional."""
+
+    model_config = ConfigDict(json_schema_serialization_defaults_required=True)
+
+
+type CriterionId = Literal[
+    "problem_understanding",
+    "scope_clarity",
+    "pricing_clarity",
+    "timeline_clarity",
+    "completeness",
+    "tone_persuasiveness",
+    "risk_transparency",
+]
 
 # 7 fixed criteria (ids MUST match what the prompt emits)
-CRITERIA: list[str] = [
+CRITERIA: list[CriterionId] = [
     "problem_understanding",
     "scope_clarity",
     "pricing_clarity",
@@ -39,17 +59,10 @@ CRITERION_LABELS: dict[str, str] = {
 }
 # completeness is a function of coverage (ADDRESSED=1, PARTIAL=0.5, else 0) and is computed
 # by code — the model never scores it.
-LLM_CRITERIA: list[str] = [c for c in CRITERIA if c != "completeness"]
+LLM_CRITERIA: list[CriterionId] = [c for c in CRITERIA if c != "completeness"]
 
-type CriterionId = Literal[
-    "problem_understanding",
-    "scope_clarity",
-    "pricing_clarity",
-    "timeline_clarity",
-    "completeness",
-    "tone_persuasiveness",
-    "risk_transparency",
-]
+# Relative weights, 1 = neutral; never sent to the LLM.
+type Weights = dict[CriterionId, float]
 type CoverageStatus = Literal["ADDRESSED", "PARTIAL", "MISSING", "CONTRADICTED"]
 type Severity = Literal["HIGH", "MEDIUM", "LOW"]
 type ConstraintKind = Literal["BUDGET", "DEADLINE", "TECHNOLOGY", "SCOPE", "LEGAL", "OTHER"]
@@ -72,21 +85,22 @@ type ScoringMode = Literal["split", "merged"]
 
 
 # ---- shared ----
-class SectionRef(BaseModel):
+class SectionRef(Model):
     id: str  # "§2", "§3.1", "¶4", "§0" (title / preamble)
     header: str
 
 
-class Citation(BaseModel):
-    """A pointer to a section of one of the two documents. No sentence: the UI has the text."""
+class Citation(Model):
+    """A section of one of the two documents plus the words in it that justify a score."""
 
     source: Source
     section: str  # section id; must exist in that document
+    quote: str | None  # verbatim ≤ 20 words from that section; null only on code-built citations
     grounding: GroundingStatus | None = None
 
 
 # ---- LLM call 1 output: what the RFP asks for, and what it forbids ----
-class Requirement(BaseModel):
+class Requirement(Model):
     id: str  # r1, r2, ...
     label: str
     rfpQuote: str  # verbatim from the RFP, ≤ 20 words
@@ -94,7 +108,7 @@ class Requirement(BaseModel):
     grounding: GroundingStatus | None = None
 
 
-class Constraint(BaseModel):
+class Constraint(Model):
     """A hard limit the proposal must not cross: budget ceiling, deadline, excluded
     technology, must-keep system. Distinct from requirements (things to deliver)."""
 
@@ -106,20 +120,20 @@ class Constraint(BaseModel):
     grounding: GroundingStatus | None = None
 
 
-class WeightSuggestion(BaseModel):
+class WeightSuggestion(Model):
     criterionId: CriterionId
     weight: float = Field(ge=0, le=5)  # relative, 1 = neutral
     reason: str
 
 
-class RfpExtraction(BaseModel):
+class RfpExtraction(Model):
     requirements: list[Requirement]
     constraints: list[Constraint]
     suggestedWeights: list[WeightSuggestion] = []
 
 
 # ---- LLM call 2 building blocks ----
-class CoverageItem(BaseModel):
+class CoverageItem(Model):
     requirementId: str
     status: CoverageStatus
     # required-but-nullable on purpose: the model must write explicit nulls rather than be
@@ -131,7 +145,7 @@ class CoverageItem(BaseModel):
     grounding: GroundingStatus | None = None
 
 
-class ConstraintViolation(BaseModel):
+class ConstraintViolation(Model):
     constraintId: str
     proposalSection: str | None
     proposalQuote: str  # verbatim, ≤ 20 words: the sentence that crosses the line
@@ -141,7 +155,7 @@ class ConstraintViolation(BaseModel):
     grounding: GroundingStatus | None = None
 
 
-class Finding(BaseModel):
+class Finding(Model):
     type: FindingType
     severity: Severity
     location: str | None = None  # proposal section id
@@ -151,7 +165,7 @@ class Finding(BaseModel):
     grounding: GroundingStatus | None = None
 
 
-class CriterionScore(BaseModel):
+class CriterionScore(Model):
     id: CriterionId
     label: str = ""  # filled by code from CRITERION_LABELS
     score: int | None = Field(ge=1, le=5)  # required-but-nullable; null = not assessable
@@ -162,14 +176,14 @@ class CriterionScore(BaseModel):
 
 
 # ---- LLM call 2 output shapes — ORDER IS REASONING ORDER ----
-class CoverageLlmOutput(BaseModel):
+class CoverageLlmOutput(Model):
     """Call 2a (split mode): triage. Small, mostly ids and enums."""
 
     coverage: list[CoverageItem]
     constraintViolations: list[ConstraintViolation]
 
 
-class GroupLlmOutput(BaseModel):
+class GroupLlmOutput(Model):
     """Call 2b-i (split mode): one group of criteria. Findings first, then the scores they
     justify."""
 
@@ -177,7 +191,7 @@ class GroupLlmOutput(BaseModel):
     scores: list[CriterionScore]
 
 
-class ScoreLlmOutput(BaseModel):
+class ScoreLlmOutput(Model):
     """Merged mode (local model): everything in one call, same order of reasoning."""
 
     coverage: list[CoverageItem]
@@ -187,41 +201,56 @@ class ScoreLlmOutput(BaseModel):
 
 
 # ---- deterministic signals (code, before call 2) ----
-class VagueHit(BaseModel):
+class VagueHit(Model):
     phrase: str
     section: str | None
     context: str
 
 
-class Mention(BaseModel):
+class Mention(Model):
     value: str
     section: str | None
 
 
-class NumericSignal(BaseModel):
+class NumericSignal(Model):
     sections: list[str] = []  # ids of sections whose header says pricing / timeline
     mentions: list[Mention] = []  # money amounts / dates & durations, whole document
 
 
-class Signals(BaseModel):
+class Signals(Model):
     vaguePhrases: list[VagueHit] = []
     pricing: NumericSignal = NumericSignal()
     timeline: NumericSignal = NumericSignal()
 
 
 # ---- API request / response ----
-class ScoreRequest(BaseModel):
+class ScoreRequest(Model):
     rfp: str = ""  # optional: without it, coverage is empty and completeness is null
     proposal: str
-    weights: dict[str, float] | None = None  # e.g. {"pricing_clarity": 2}; never sent to the LLM
+    weights: Weights | None = None  # e.g. {"pricing_clarity": 2}; never sent to the LLM
 
 
-class DocOutline(BaseModel):
+class ExtractRequest(Model):
+    rfp: str
+
+
+class ErrorDetail(Model):
+    """The body of every 4xx / 5xx this API raises (FastAPI's HTTPException shape)."""
+
+    detail: str
+
+
+class DocOutline(Model):
     count: int
     sections: list[SectionRef]
 
 
-class ScoringMeta(BaseModel):
+class Outlines(Model):
+    rfp: DocOutline
+    proposal: DocOutline
+
+
+class ScoringMeta(Model):
     model: str
     temperature: float
     promptVersion: str
@@ -236,9 +265,9 @@ class ScoringMeta(BaseModel):
     scoreCached: bool = False  # every scoring call was a cache hit
 
 
-class ScoringResult(BaseModel):
+class ScoringResult(Model):
     overall: float | None  # None when partial or nothing scorable
-    weights: dict[str, float]
+    weights: Weights  # always the seven ids, as normalised by aggregate.normalize_weights
     scores: list[CriterionScore]
     coverage: list[CoverageItem]
     constraintViolations: list[ConstraintViolation]
@@ -247,7 +276,7 @@ class ScoringResult(BaseModel):
     constraints: list[Constraint]
     suggestedWeights: list[WeightSuggestion]
     signals: Signals
-    sections: dict[Source, DocOutline]
+    sections: Outlines
     partial: bool = False  # something is missing: see `error` / `warnings`
     error: str | None = None  # a call failed outright
     warnings: list[str] = []  # e.g. a truncated output was salvaged, a group failed
@@ -255,33 +284,31 @@ class ScoringResult(BaseModel):
 
 
 # ---- SSE event payloads (POST /score/stream), in emission order ----
-class SectionsEvent(BaseModel):
-    rfp: DocOutline
-    proposal: DocOutline
+SectionsEvent = Outlines  # the first frame is exactly the two outlines
 
 
-class RequirementsEvent(BaseModel):  # right after LLM call 1
+class RequirementsEvent(Model):  # right after LLM call 1
     requirements: list[Requirement]
     constraints: list[Constraint]
     suggestedWeights: list[WeightSuggestion]
     extractCached: bool
 
 
-class CoverageEvent(BaseModel):  # right after call 2a (split) / the merged call
+class CoverageEvent(Model):  # right after call 2a (split) / the merged call
     coverage: list[CoverageItem]
     constraintViolations: list[ConstraintViolation]
 
 
-class ScoresEvent(BaseModel):  # after every scoring call has returned and been grounded
+class ScoresEvent(Model):  # after every scoring call has returned and been grounded
     scores: list[CriterionScore]
     overall: float | None
 
 
-class FindingsEvent(BaseModel):
+class FindingsEvent(Model):
     findings: list[Finding]
 
 
-class ErrorEvent(BaseModel):
+class ErrorEvent(Model):
     stage: str
     error: str
 
@@ -296,3 +323,54 @@ type EventPayload = (
     | ErrorEvent
     | ScoringResult
 )
+
+
+# ---- one SSE frame as the client parses it: {"event": <name>, "data": <payload>} ----
+class SectionsFrame(Model):
+    event: Literal["sections"]
+    data: Outlines
+
+
+class RequirementsFrame(Model):
+    event: Literal["requirements"]
+    data: RequirementsEvent
+
+
+class CoverageFrame(Model):
+    event: Literal["coverage"]
+    data: CoverageEvent
+
+
+class ScoresFrame(Model):
+    event: Literal["scores"]
+    data: ScoresEvent
+
+
+class FindingsFrame(Model):
+    event: Literal["findings"]
+    data: FindingsEvent
+
+
+class DoneFrame(Model):
+    event: Literal["done"]
+    data: ScoringResult
+
+
+class ErrorFrame(Model):
+    event: Literal["error"]
+    data: ErrorEvent
+
+
+# Discriminated on `event`, so the generated client gets a tagged union and validates each
+# frame in one parse. Order on the wire: sections → requirements → coverage → scores →
+# findings → done; `error` is terminal and can replace anything after the first frame.
+type StreamEvent = Annotated[
+    SectionsFrame
+    | RequirementsFrame
+    | CoverageFrame
+    | ScoresFrame
+    | FindingsFrame
+    | DoneFrame
+    | ErrorFrame,
+    Field(discriminator="event"),
+]

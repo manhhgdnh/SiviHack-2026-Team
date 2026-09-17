@@ -1,0 +1,1486 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Proposal Scorer",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "Health",
+        "operationId": "meta_health",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object",
+                  "title": "Response Meta Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/score": {
+      "post": {
+        "tags": [
+          "score"
+        ],
+        "summary": "Score",
+        "operationId": "score_score",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The proposal is blank (the RFP is optional).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The LLM call failed after its retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/score/stream": {
+      "post": {
+        "tags": [
+          "score"
+        ],
+        "summary": "Stream",
+        "description": "FastAPI frames each ServerSentEvent, sets Cache-Control / X-Accel-Buffering and pings\nwhile the generator is silent. A failure mid-stream is an `error` frame, never a dropped\nsocket.",
+        "operationId": "score_stream",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "One frame per pipeline stage; `done` and `error` are terminal.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamEvent"
+                },
+                "itemSchema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "string"
+                    },
+                    "event": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "retry": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The proposal is blank (the RFP is optional).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/rfp/extract": {
+      "post": {
+        "tags": [
+          "rfp"
+        ],
+        "summary": "Extract",
+        "operationId": "rfp_extract",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExtractRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RequirementsEvent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The RFP is blank.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The LLM call failed after its retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Citation": {
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/Source"
+          },
+          "section": {
+            "type": "string",
+            "title": "Section"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quote"
+          },
+          "grounding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GroundingStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "section",
+          "quote",
+          "grounding"
+        ],
+        "title": "Citation",
+        "description": "A section of one of the two documents plus the words in it that justify a score."
+      },
+      "Constraint": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ConstraintKind"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "rfpQuote": {
+            "type": "string",
+            "title": "Rfpquote"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "grounding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GroundingStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "rfpQuote",
+          "section",
+          "grounding"
+        ],
+        "title": "Constraint",
+        "description": "A hard limit the proposal must not cross: budget ceiling, deadline, excluded\ntechnology, must-keep system. Distinct from requirements (things to deliver)."
+      },
+      "ConstraintKind": {
+        "type": "string",
+        "enum": [
+          "BUDGET",
+          "DEADLINE",
+          "TECHNOLOGY",
+          "SCOPE",
+          "LEGAL",
+          "OTHER"
+        ]
+      },
+      "ConstraintViolation": {
+        "properties": {
+          "constraintId": {
+            "type": "string",
+            "title": "Constraintid"
+          },
+          "proposalSection": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposalsection"
+          },
+          "proposalQuote": {
+            "type": "string",
+            "title": "Proposalquote"
+          },
+          "violation": {
+            "type": "string",
+            "title": "Violation"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "fix": {
+            "type": "string",
+            "title": "Fix"
+          },
+          "grounding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GroundingStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "constraintId",
+          "proposalSection",
+          "proposalQuote",
+          "violation",
+          "severity",
+          "fix",
+          "grounding"
+        ],
+        "title": "ConstraintViolation"
+      },
+      "CoverageEvent": {
+        "properties": {
+          "coverage": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageItem"
+            },
+            "type": "array",
+            "title": "Coverage"
+          },
+          "constraintViolations": {
+            "items": {
+              "$ref": "#/components/schemas/ConstraintViolation"
+            },
+            "type": "array",
+            "title": "Constraintviolations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "coverage",
+          "constraintViolations"
+        ],
+        "title": "CoverageEvent"
+      },
+      "CoverageFrame": {
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "coverage",
+            "title": "Event"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CoverageEvent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "CoverageFrame"
+      },
+      "CoverageItem": {
+        "properties": {
+          "requirementId": {
+            "type": "string",
+            "title": "Requirementid"
+          },
+          "status": {
+            "$ref": "#/components/schemas/CoverageStatus"
+          },
+          "proposalSection": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposalsection"
+          },
+          "proposalQuote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposalquote"
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation"
+          },
+          "fix": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fix"
+          },
+          "grounding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GroundingStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "requirementId",
+          "status",
+          "proposalSection",
+          "proposalQuote",
+          "explanation",
+          "fix",
+          "grounding"
+        ],
+        "title": "CoverageItem"
+      },
+      "CoverageStatus": {
+        "type": "string",
+        "enum": [
+          "ADDRESSED",
+          "PARTIAL",
+          "MISSING",
+          "CONTRADICTED"
+        ]
+      },
+      "CriterionId": {
+        "type": "string",
+        "enum": [
+          "problem_understanding",
+          "scope_clarity",
+          "pricing_clarity",
+          "timeline_clarity",
+          "completeness",
+          "tone_persuasiveness",
+          "risk_transparency"
+        ]
+      },
+      "CriterionScore": {
+        "properties": {
+          "id": {
+            "$ref": "#/components/schemas/CriterionId"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "default": ""
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 5.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "strengths": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strengths"
+          },
+          "weaknesses": {
+            "type": "string",
+            "title": "Weaknesses"
+          },
+          "citations": {
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "type": "array",
+            "title": "Citations",
+            "default": []
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "score",
+          "strengths",
+          "weaknesses",
+          "citations",
+          "note"
+        ],
+        "title": "CriterionScore"
+      },
+      "DocOutline": {
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/SectionRef"
+            },
+            "type": "array",
+            "title": "Sections"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "sections"
+        ],
+        "title": "DocOutline"
+      },
+      "DoneFrame": {
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "done",
+            "title": "Event"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ScoringResult"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "DoneFrame"
+      },
+      "ErrorDetail": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorDetail",
+        "description": "The body of every 4xx / 5xx this API raises (FastAPI's HTTPException shape)."
+      },
+      "ErrorEvent": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "error": {
+            "type": "string",
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stage",
+          "error"
+        ],
+        "title": "ErrorEvent"
+      },
+      "ErrorFrame": {
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "error",
+            "title": "Event"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ErrorEvent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "ErrorFrame"
+      },
+      "ExtractRequest": {
+        "properties": {
+          "rfp": {
+            "type": "string",
+            "title": "Rfp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rfp"
+        ],
+        "title": "ExtractRequest"
+      },
+      "Finding": {
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/FindingType"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Location"
+          },
+          "proposalQuote": {
+            "type": "string",
+            "title": "Proposalquote"
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation"
+          },
+          "fix": {
+            "type": "string",
+            "title": "Fix"
+          },
+          "grounding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GroundingStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "severity",
+          "location",
+          "proposalQuote",
+          "explanation",
+          "fix",
+          "grounding"
+        ],
+        "title": "Finding"
+      },
+      "FindingType": {
+        "type": "string",
+        "enum": [
+          "OVERCOMMIT",
+          "SCOPE_CREEP",
+          "UNREALISTIC_TIMELINE",
+          "PRICING_MISMATCH",
+          "VAGUENESS",
+          "INCONSISTENCY"
+        ]
+      },
+      "FindingsEvent": {
+        "properties": {
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "type": "array",
+            "title": "Findings"
+          }
+        },
+        "type": "object",
+        "required": [
+          "findings"
+        ],
+        "title": "FindingsEvent"
+      },
+      "FindingsFrame": {
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "findings",
+            "title": "Event"
+          },
+          "data": {
+            "$ref": "#/components/schemas/FindingsEvent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "FindingsFrame"
+      },
+      "GroundingStatus": {
+        "type": "string",
+        "enum": [
+          "verified",
+          "fuzzy",
+          "unverified"
+        ]
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Mention": {
+        "properties": {
+          "value": {
+            "type": "string",
+            "title": "Value"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value",
+          "section"
+        ],
+        "title": "Mention"
+      },
+      "NumericSignal": {
+        "properties": {
+          "sections": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sections",
+            "default": []
+          },
+          "mentions": {
+            "items": {
+              "$ref": "#/components/schemas/Mention"
+            },
+            "type": "array",
+            "title": "Mentions",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "sections",
+          "mentions"
+        ],
+        "title": "NumericSignal"
+      },
+      "Outlines": {
+        "properties": {
+          "rfp": {
+            "$ref": "#/components/schemas/DocOutline"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/DocOutline"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rfp",
+          "proposal"
+        ],
+        "title": "Outlines"
+      },
+      "Requirement": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "rfpQuote": {
+            "type": "string",
+            "title": "Rfpquote"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "grounding": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GroundingStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "rfpQuote",
+          "section",
+          "grounding"
+        ],
+        "title": "Requirement"
+      },
+      "RequirementsEvent": {
+        "properties": {
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/Requirement"
+            },
+            "type": "array",
+            "title": "Requirements"
+          },
+          "constraints": {
+            "items": {
+              "$ref": "#/components/schemas/Constraint"
+            },
+            "type": "array",
+            "title": "Constraints"
+          },
+          "suggestedWeights": {
+            "items": {
+              "$ref": "#/components/schemas/WeightSuggestion"
+            },
+            "type": "array",
+            "title": "Suggestedweights"
+          },
+          "extractCached": {
+            "type": "boolean",
+            "title": "Extractcached"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requirements",
+          "constraints",
+          "suggestedWeights",
+          "extractCached"
+        ],
+        "title": "RequirementsEvent"
+      },
+      "RequirementsFrame": {
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "requirements",
+            "title": "Event"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RequirementsEvent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "RequirementsFrame"
+      },
+      "ScoreRequest": {
+        "properties": {
+          "rfp": {
+            "type": "string",
+            "title": "Rfp",
+            "default": ""
+          },
+          "proposal": {
+            "type": "string",
+            "title": "Proposal"
+          },
+          "weights": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Weights"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "proposal"
+        ],
+        "title": "ScoreRequest"
+      },
+      "ScoresEvent": {
+        "properties": {
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionScore"
+            },
+            "type": "array",
+            "title": "Scores"
+          },
+          "overall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overall"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scores",
+          "overall"
+        ],
+        "title": "ScoresEvent"
+      },
+      "ScoresFrame": {
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "scores",
+            "title": "Event"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ScoresEvent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "ScoresFrame"
+      },
+      "ScoringMeta": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "temperature": {
+            "type": "number",
+            "title": "Temperature"
+          },
+          "promptVersion": {
+            "type": "string",
+            "title": "Promptversion"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/ScoringMode",
+            "default": "merged"
+          },
+          "durationMs": {
+            "type": "integer",
+            "title": "Durationms"
+          },
+          "llmCalls": {
+            "type": "integer",
+            "title": "Llmcalls",
+            "default": 0
+          },
+          "truncated": {
+            "type": "integer",
+            "title": "Truncated",
+            "default": 0
+          },
+          "repaired": {
+            "type": "integer",
+            "title": "Repaired",
+            "default": 0
+          },
+          "ungroundedDropped": {
+            "type": "integer",
+            "title": "Ungroundeddropped",
+            "default": 0
+          },
+          "fuzzyMatched": {
+            "type": "integer",
+            "title": "Fuzzymatched",
+            "default": 0
+          },
+          "extractCached": {
+            "type": "boolean",
+            "title": "Extractcached",
+            "default": false
+          },
+          "scoreCached": {
+            "type": "boolean",
+            "title": "Scorecached",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "temperature",
+          "promptVersion",
+          "mode",
+          "durationMs",
+          "llmCalls",
+          "truncated",
+          "repaired",
+          "ungroundedDropped",
+          "fuzzyMatched",
+          "extractCached",
+          "scoreCached"
+        ],
+        "title": "ScoringMeta"
+      },
+      "ScoringMode": {
+        "type": "string",
+        "enum": [
+          "split",
+          "merged"
+        ]
+      },
+      "ScoringResult": {
+        "properties": {
+          "overall": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Overall"
+          },
+          "weights": {
+            "$ref": "#/components/schemas/Weights"
+          },
+          "scores": {
+            "items": {
+              "$ref": "#/components/schemas/CriterionScore"
+            },
+            "type": "array",
+            "title": "Scores"
+          },
+          "coverage": {
+            "items": {
+              "$ref": "#/components/schemas/CoverageItem"
+            },
+            "type": "array",
+            "title": "Coverage"
+          },
+          "constraintViolations": {
+            "items": {
+              "$ref": "#/components/schemas/ConstraintViolation"
+            },
+            "type": "array",
+            "title": "Constraintviolations"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/Requirement"
+            },
+            "type": "array",
+            "title": "Requirements"
+          },
+          "constraints": {
+            "items": {
+              "$ref": "#/components/schemas/Constraint"
+            },
+            "type": "array",
+            "title": "Constraints"
+          },
+          "suggestedWeights": {
+            "items": {
+              "$ref": "#/components/schemas/WeightSuggestion"
+            },
+            "type": "array",
+            "title": "Suggestedweights"
+          },
+          "signals": {
+            "$ref": "#/components/schemas/Signals"
+          },
+          "sections": {
+            "$ref": "#/components/schemas/Outlines"
+          },
+          "partial": {
+            "type": "boolean",
+            "title": "Partial",
+            "default": false
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "default": []
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ScoringMeta"
+          }
+        },
+        "type": "object",
+        "required": [
+          "overall",
+          "weights",
+          "scores",
+          "coverage",
+          "constraintViolations",
+          "findings",
+          "requirements",
+          "constraints",
+          "suggestedWeights",
+          "signals",
+          "sections",
+          "partial",
+          "error",
+          "warnings",
+          "meta"
+        ],
+        "title": "ScoringResult"
+      },
+      "SectionRef": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "header": {
+            "type": "string",
+            "title": "Header"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "header"
+        ],
+        "title": "SectionRef"
+      },
+      "SectionsFrame": {
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "sections",
+            "title": "Event"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Outlines"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "SectionsFrame"
+      },
+      "Severity": {
+        "type": "string",
+        "enum": [
+          "HIGH",
+          "MEDIUM",
+          "LOW"
+        ]
+      },
+      "Signals": {
+        "properties": {
+          "vaguePhrases": {
+            "items": {
+              "$ref": "#/components/schemas/VagueHit"
+            },
+            "type": "array",
+            "title": "Vaguephrases",
+            "default": []
+          },
+          "pricing": {
+            "$ref": "#/components/schemas/NumericSignal",
+            "default": {
+              "sections": [],
+              "mentions": []
+            }
+          },
+          "timeline": {
+            "$ref": "#/components/schemas/NumericSignal",
+            "default": {
+              "sections": [],
+              "mentions": []
+            }
+          }
+        },
+        "type": "object",
+        "required": [
+          "vaguePhrases",
+          "pricing",
+          "timeline"
+        ],
+        "title": "Signals"
+      },
+      "Source": {
+        "type": "string",
+        "enum": [
+          "proposal",
+          "rfp"
+        ]
+      },
+      "StreamEvent": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SectionsFrame"
+          },
+          {
+            "$ref": "#/components/schemas/RequirementsFrame"
+          },
+          {
+            "$ref": "#/components/schemas/CoverageFrame"
+          },
+          {
+            "$ref": "#/components/schemas/ScoresFrame"
+          },
+          {
+            "$ref": "#/components/schemas/FindingsFrame"
+          },
+          {
+            "$ref": "#/components/schemas/DoneFrame"
+          },
+          {
+            "$ref": "#/components/schemas/ErrorFrame"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "event",
+          "mapping": {
+            "coverage": "#/components/schemas/CoverageFrame",
+            "done": "#/components/schemas/DoneFrame",
+            "error": "#/components/schemas/ErrorFrame",
+            "findings": "#/components/schemas/FindingsFrame",
+            "requirements": "#/components/schemas/RequirementsFrame",
+            "scores": "#/components/schemas/ScoresFrame",
+            "sections": "#/components/schemas/SectionsFrame"
+          }
+        }
+      },
+      "VagueHit": {
+        "properties": {
+          "phrase": {
+            "type": "string",
+            "title": "Phrase"
+          },
+          "section": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section"
+          },
+          "context": {
+            "type": "string",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "phrase",
+          "section",
+          "context"
+        ],
+        "title": "VagueHit"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WeightSuggestion": {
+        "properties": {
+          "criterionId": {
+            "$ref": "#/components/schemas/CriterionId"
+          },
+          "weight": {
+            "type": "number",
+            "maximum": 5.0,
+            "minimum": 0.0,
+            "title": "Weight"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "criterionId",
+          "weight",
+          "reason"
+        ],
+        "title": "WeightSuggestion"
+      },
+      "Weights": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "propertyNames": {
+          "$ref": "#/components/schemas/CriterionId"
+        },
+        "type": "object"
+      }
+    }
+  }
+}

@@ -5,6 +5,8 @@ LLM, never enter a cache key. Dragging a slider is a pure recomputation here (or
 with the same formula), not an LLM call.
 """
 
+from collections.abc import Mapping
+
 from app.normalize import normalize
 from app.schema import (
     CRITERIA,
@@ -15,6 +17,7 @@ from app.schema import (
     CriterionScore,
     Finding,
     Requirement,
+    Weights,
 )
 
 _SEV = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
@@ -22,12 +25,12 @@ _COV = {"CONTRADICTED": 3, "MISSING": 2, "PARTIAL": 1, "ADDRESSED": 0}
 COMPLETENESS_CREDIT = {"ADDRESSED": 1.0, "PARTIAL": 0.5, "MISSING": 0.0, "CONTRADICTED": 0.0}
 
 
-def normalize_weights(weights: dict[str, float] | None) -> dict[str, float]:
+def normalize_weights(weights: Mapping[str, float] | None) -> Weights:
     weights = weights or {}
     return {c: float(weights.get(c, 1.0)) for c in CRITERIA}
 
 
-def weighted_overall(scores: list[CriterionScore], weights: dict[str, float]) -> float | None:
+def weighted_overall(scores: list[CriterionScore], weights: Weights) -> float | None:
     """Σ(score × weight) / Σ(weight) over criteria that have a score. None if none do."""
     num = den = 0.0
     for s in scores:
@@ -79,7 +82,10 @@ def completeness_from_coverage(
         weaknesses=f"{len(gaps)} of {n} requirements not fully addressed: {'; '.join(gaps)}."
         if gaps
         else "Every requirement is addressed.",
-        citations=[Citation(source="proposal", section=s, grounding="verified") for s in sections],
+        citations=[
+            Citation(source="proposal", section=s, quote=None, grounding="verified")
+            for s in sections
+        ],
         note=f"computed from coverage: {credit:g}/{n} credit "
         "(ADDRESSED = 1, PARTIAL = 0.5, MISSING / CONTRADICTED = 0)",
     )

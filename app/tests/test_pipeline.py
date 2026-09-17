@@ -138,9 +138,12 @@ GROUP_ANSWERS: dict[str, dict[str, Any]] = {
             _score(
                 "pricing_clarity",
                 4,
-                [{"source": "proposal", "section": "§4"}, {"source": "rfp", "section": "§3"}],
+                [
+                    {"source": "proposal", "section": "§4", "quote": None},
+                    {"source": "rfp", "section": "§3", "quote": None},
+                ],
             ),
-            _score("timeline_clarity", 2, [{"source": "proposal", "section": "§3"}]),
+            _score("timeline_clarity", 2, [{"source": "proposal", "section": "§3", "quote": None}]),
         ],
     },
     "risk": {
@@ -443,6 +446,18 @@ def test_cache_serves_every_call_and_weights_are_not_in_the_key(cache: Path, spl
     assert len(p.calls) == 9 and "extract" not in p.calls[5:]
 
 
+def test_extract_requirements_shares_the_cache_with_a_full_run(cache: Path):
+    """POST /rfp/extract is call 1 alone; the full run that follows finds it in the cache."""
+    p = FakeProvider()
+    ev = asyncio.run(pipeline.extract_requirements(RFP, provider=p))
+    assert p.calls == ["extract"] and ev.extractCached is False
+    assert [r.id for r in ev.requirements] and ev.constraints and ev.suggestedWeights
+    done = asyncio.run(pipeline.score_proposal(RFP, OVER, provider=p))
+    assert p.calls.count("extract") == 1 and done.meta.extractCached is True
+    again = asyncio.run(pipeline.extract_requirements(RFP, provider=p))
+    assert again.extractCached is True and p.calls.count("extract") == 1
+
+
 def test_cache_key_includes_prompt_version_and_model(cache: Path, monkeypatch: pytest.MonkeyPatch):
     p = FakeProvider()
     asyncio.run(pipeline.score_proposal(RFP, OVER, provider=p))
@@ -467,7 +482,7 @@ def test_without_rfp_completeness_is_null_not_zero(cache: Path):
     comp = next(s for s in done.scores if s.id == "completeness")
     assert comp.score is None and "no RFP" in (comp.note or "")
     assert done.overall == round((2 + 3 + 4 + 2 + 3 + 1) / 6, 2)
-    assert done.sections["rfp"].count == 0
+    assert done.sections.rfp.count == 0
 
 
 def test_without_rfp_split_mode_skips_the_coverage_call(cache: Path, split: None):
