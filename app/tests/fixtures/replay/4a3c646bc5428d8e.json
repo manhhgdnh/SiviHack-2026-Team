@@ -1,0 +1,13 @@
+{
+ "kind": "group:understanding",
+ "model": "gemini-3.8-flash",
+ "prompt_head": "You score a draft PROPOSAL on 2 review criteria. Group id: understanding. Other ",
+ "truncated": false,
+ "usage": {
+  "prompt": 2308,
+  "output": 380,
+  "thinking": 0,
+  "cached": 0
+ },
+ "text": "{\n  \"findings\": [],\n  \"scores\": [\n    {\n      \"id\": \"problem_understanding\",\n      \"label\": \"Problem Understanding\",\n      \"score\": 1,\n      \"strengths\": null,\n      \"weaknesses\": \"The proposal offers only a generic pitch in §2 that completely overlooks NordFrame's multi-site infrastructure, legacy spreadsheets, and PostgreSQL database requirements.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§2\",\n          \"quote\": \"NordFrame needs better visibility into warehouse inventory.\"\n        },\n        {\n          \"source\": \"rfp\",\n          \"section\": \"§1\",\n          \"quote\": \"Our current inventory tracking is split across spreadsheets and an outdated legacy system\"\n        }\n      ],\n      \"note\": null\n    },\n    {\n      \"id\": \"tone_persuasiveness\",\n      \"label\": \"Tone & Persuasiveness\",\n      \"score\": 1,\n      \"strengths\": null,\n      \"weaknesses\": \"The proposal relies heavily on vague, vendor-centric boilerplate in §5 and §7 rather than client-focused, evidence-backed commitments.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§5\",\n          \"quote\": \"aim to deliver the solution in a timely manner, with regular updates along the way.\"\n        },\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§7\",\n          \"quote\": \"We have a talented team of engineers passionate about solving real business problems with technology.\"\n        }\n      ],\n      \"note\": null\n    }\n  ]\n}"
+}

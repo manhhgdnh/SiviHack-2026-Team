@@ -1,0 +1,538 @@
+{
+  "overall": 1.14,
+  "weights": {
+    "problem_understanding": 1.0,
+    "scope_clarity": 1.0,
+    "pricing_clarity": 1.0,
+    "timeline_clarity": 1.0,
+    "completeness": 1.0,
+    "tone_persuasiveness": 1.0,
+    "risk_transparency": 1.0
+  },
+  "scores": [
+    {
+      "id": "problem_understanding",
+      "label": "Problem Understanding",
+      "score": 1,
+      "strengths": null,
+      "weaknesses": "The proposal offers only a generic pitch in §2 that completely overlooks NordFrame's multi-site infrastructure, legacy spreadsheets, and PostgreSQL database requirements.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§2",
+          "quote": "NordFrame needs better visibility into warehouse inventory.",
+          "grounding": "verified"
+        },
+        {
+          "source": "rfp",
+          "section": "§1",
+          "quote": "Our current inventory tracking is split across spreadsheets and an outdated legacy system",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "scope_clarity",
+      "label": "Scope & Deliverables Clarity",
+      "score": 1,
+      "strengths": null,
+      "weaknesses": "Section §4 provides only a generic 3-bullet feature list without detailing boundaries, deliverables, database integration, or onboarding plans.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§4",
+          "quote": "- Real-time inventory dashboard - Notifications for low stock - Secure login for different users",
+          "grounding": "fuzzy"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "pricing_clarity",
+      "label": "Pricing Clarity",
+      "score": 1,
+      "strengths": null,
+      "weaknesses": "Section §6 contains zero figures or breakdown, deferring all commercials to future discussions.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§6",
+          "quote": "Pricing will be provided upon further discussion of detailed requirements, and will depend on final scope.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "timeline_clarity",
+      "label": "Timeline Clarity",
+      "score": 1,
+      "strengths": null,
+      "weaknesses": "Section §5 provides no specific dates, milestones, or durations, relying entirely on vague phrasing like delivering 'in a timely manner'.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§5",
+          "quote": "We will begin work shortly after contract signing and aim to deliver the solution in a timely manner",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "completeness",
+      "label": "Completeness vs. RFP Requirements",
+      "score": 2,
+      "strengths": null,
+      "weaknesses": "10 of 10 requirements not fully addressed: r1 Web-based inventory dashboard (PARTIAL); r2 Automated low-stock alerts (PARTIAL); r3 PostgreSQL database integration (MISSING); r4 Role-based access control (PARTIAL); r5 Data migration and onboarding plan (MISSING); r6 Support and maintenance terms (MISSING); r7 Documentation of risks and assumptions (MISSING); r8 Total project budget (PARTIAL); r9 Pilot delivery timeline (PARTIAL); r10 Full rollout timeline (PARTIAL).",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§3",
+          "quote": null,
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§4",
+          "quote": null,
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§6",
+          "quote": null,
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§5",
+          "quote": null,
+          "grounding": "verified"
+        }
+      ],
+      "note": "computed from coverage: 3/10 credit (ADDRESSED = 1, PARTIAL = 0.5, MISSING / CONTRADICTED = 0)"
+    },
+    {
+      "id": "tone_persuasiveness",
+      "label": "Tone & Persuasiveness",
+      "score": 1,
+      "strengths": null,
+      "weaknesses": "The proposal relies heavily on vague, vendor-centric boilerplate in §5 and §7 rather than client-focused, evidence-backed commitments.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§5",
+          "quote": "aim to deliver the solution in a timely manner, with regular updates along the way.",
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§7",
+          "quote": "We have a talented team of engineers passionate about solving real business problems with technology.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "risk_transparency",
+      "label": "Risk/Assumptions Transparency",
+      "score": 1,
+      "strengths": null,
+      "weaknesses": "The proposal fails to disclose any assumptions, risks, or mitigations despite the explicit RFP mandate.",
+      "citations": [
+        {
+          "source": "rfp",
+          "section": "§2",
+          "quote": "Clear documentation of any assumptions, limitations, or risks, since inventory decisions will be made based on this system.",
+          "grounding": "fuzzy"
+        }
+      ],
+      "note": null
+    }
+  ],
+  "coverage": [
+    {
+      "requirementId": "r3",
+      "status": "MISSING",
+      "proposalSection": null,
+      "proposalQuote": null,
+      "explanation": "PostgreSQL database integration is not mentioned anywhere in the proposal.",
+      "fix": "Add details on integrating directly with the existing PostgreSQL database to §3.",
+      "grounding": null
+    },
+    {
+      "requirementId": "r5",
+      "status": "MISSING",
+      "proposalSection": null,
+      "proposalQuote": null,
+      "explanation": "No data migration or onboarding rollout plan across sites is provided.",
+      "fix": "Add an onboarding and data migration plan for all 6 sites to §3 or §5.",
+      "grounding": null
+    },
+    {
+      "requirementId": "r6",
+      "status": "MISSING",
+      "proposalSection": null,
+      "proposalQuote": null,
+      "explanation": "Post-go-live support, response times, and SLAs are not addressed.",
+      "fix": "Add a dedicated section specifying post-go-live support terms, response times, and SLAs.",
+      "grounding": null
+    },
+    {
+      "requirementId": "r7",
+      "status": "MISSING",
+      "proposalSection": null,
+      "proposalQuote": null,
+      "explanation": "Proposal does not document any project assumptions, limitations, or risks.",
+      "fix": "Include a section clearly documenting project risks, limitations, and key operational assumptions.",
+      "grounding": null
+    },
+    {
+      "requirementId": "r1",
+      "status": "PARTIAL",
+      "proposalSection": "§3",
+      "proposalQuote": "displays inventory data in real time",
+      "explanation": "Dashboard is mentioned but omits coverage across all 6 warehouses.",
+      "fix": "Specify that the web-based dashboard displays real-time inventory across all 6 warehouse sites.",
+      "grounding": "verified"
+    },
+    {
+      "requirementId": "r2",
+      "status": "PARTIAL",
+      "proposalSection": "§4",
+      "proposalQuote": "Notifications for low stock",
+      "explanation": "Lacks details on configurable thresholds and delivery to warehouse managers.",
+      "fix": "Clarify that automated alerts are sent to warehouse managers when stock falls below configurable thresholds.",
+      "grounding": "verified"
+    },
+    {
+      "requirementId": "r4",
+      "status": "PARTIAL",
+      "proposalSection": "§4",
+      "proposalQuote": "Secure login for different users",
+      "explanation": "Does not detail site-specific access for warehouse managers versus HQ staff.",
+      "fix": "Detail role-based access controls restricting warehouse managers to their site while granting HQ full visibility.",
+      "grounding": "verified"
+    },
+    {
+      "requirementId": "r8",
+      "status": "PARTIAL",
+      "proposalSection": "§6",
+      "proposalQuote": "Pricing will be provided upon further discussion",
+      "explanation": "Pricing is deferred rather than providing a total project cost.",
+      "fix": "Provide a binding total cost within [amount] including first-year support in §6.",
+      "grounding": "verified"
+    },
+    {
+      "requirementId": "r9",
+      "status": "PARTIAL",
+      "proposalSection": "§5",
+      "proposalQuote": "deliver the solution in a timely manner",
+      "explanation": "The 3-month pilot milestone is not explicitly committed to.",
+      "fix": "State a firm commitment to deliver the single-warehouse pilot within 3 months in §5.",
+      "grounding": "verified"
+    },
+    {
+      "requirementId": "r10",
+      "status": "PARTIAL",
+      "proposalSection": "§5",
+      "proposalQuote": "deliver the solution in a timely manner",
+      "explanation": "The 6-month full rollout across all 6 sites is not specified.",
+      "fix": "Explicitly schedule the full rollout across all 6 sites within 6 months in §5.",
+      "grounding": "verified"
+    }
+  ],
+  "constraintViolations": [],
+  "findings": [
+    {
+      "type": "VAGUENESS",
+      "severity": "HIGH",
+      "location": "§5",
+      "proposalQuote": "aim to deliver the solution in a timely manner",
+      "explanation": "The client has strict deadlines for a 3-month pilot and a 6-month full rollout across 6 warehouses, which this non-committal phrase fails to satisfy.",
+      "fix": "Commit to explicit dates aligning with the pilot and rollout deadlines: 'We will deliver the pilot within 3 months and complete full rollout within 6 months.'",
+      "grounding": "verified"
+    },
+    {
+      "type": "VAGUENESS",
+      "severity": "HIGH",
+      "location": "§6",
+      "proposalQuote": "Pricing will be provided upon further discussion of detailed requirements",
+      "explanation": "NordFrame requires a commercial commitment aligned with its €80,000–€120,000 budget range to evaluate the proposal.",
+      "fix": "Replace the deferred statement with an itemized commercial model totaling [amount] within the client's stated budget.",
+      "grounding": "verified"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "label": "Web-based inventory dashboard",
+      "rfpQuote": "A web-based dashboard showing real-time inventory levels across all 6 warehouses.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r2",
+      "label": "Automated low-stock alerts",
+      "rfpQuote": "Automated low-stock alerts sent to warehouse managers when items fall below a configurable threshold.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r3",
+      "label": "PostgreSQL database integration",
+      "rfpQuote": "Integration with our existing PostgreSQL inventory database",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r4",
+      "label": "Role-based access control",
+      "rfpQuote": "Role-based access — warehouse managers should only see their own site; HQ staff should see all sites.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r5",
+      "label": "Data migration and onboarding plan",
+      "rfpQuote": "A data migration / onboarding plan for rolling this out across all 6 sites with minimal disruption.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r6",
+      "label": "Support and maintenance terms",
+      "rfpQuote": "Support & maintenance terms after go-live (response times, SLAs).",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r7",
+      "label": "Documentation of risks and assumptions",
+      "rfpQuote": "Clear documentation of any assumptions, limitations, or risks, since inventory decisions will be made based on this system.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r8",
+      "label": "Total project budget",
+      "rfpQuote": "€80,000–€120,000 total, including first year of support.",
+      "section": "§3",
+      "grounding": "verified"
+    },
+    {
+      "id": "r9",
+      "label": "Pilot delivery timeline",
+      "rfpQuote": "Working pilot at one warehouse within 3 months;",
+      "section": "§4",
+      "grounding": "verified"
+    },
+    {
+      "id": "r10",
+      "label": "Full rollout timeline",
+      "rfpQuote": "full rollout to all 6 sites within 6 months.",
+      "section": "§4",
+      "grounding": "verified"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "c1",
+      "kind": "TECHNOLOGY",
+      "label": "No database migration",
+      "rfpQuote": "no migration to a new database.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "c2",
+      "kind": "BUDGET",
+      "label": "Budget ceiling",
+      "rfpQuote": "€80,000–€120,000 total, including first year of support.",
+      "section": "§3",
+      "grounding": "verified"
+    },
+    {
+      "id": "c3",
+      "kind": "DEADLINE",
+      "label": "Pilot delivery deadline",
+      "rfpQuote": "Working pilot at one warehouse within 3 months;",
+      "section": "§4",
+      "grounding": "verified"
+    },
+    {
+      "id": "c4",
+      "kind": "DEADLINE",
+      "label": "Full rollout deadline",
+      "rfpQuote": "full rollout to all 6 sites within 6 months.",
+      "section": "§4",
+      "grounding": "verified"
+    }
+  ],
+  "suggestedWeights": [
+    {
+      "criterionId": "problem_understanding",
+      "weight": 1.2,
+      "reason": "The RFP notes challenges with split tracking across spreadsheets and legacy systems that obscure cross-site visibility."
+    },
+    {
+      "criterionId": "scope_clarity",
+      "weight": 1.3,
+      "reason": "Clear delineations of access roles and rollout deliverables across six distinct sites are explicitly demanded."
+    },
+    {
+      "criterionId": "pricing_clarity",
+      "weight": 1.2,
+      "reason": "The client specifies a clear budget range that must explicitly include the first year of support."
+    },
+    {
+      "criterionId": "timeline_clarity",
+      "weight": 1.3,
+      "reason": "Strict phased delivery deadlines are specified for both a 3-month pilot and a 6-month full rollout."
+    },
+    {
+      "criterionId": "tone_persuasiveness",
+      "weight": 0.8,
+      "reason": "The requirements emphasize operational viability and technical adherence over marketing or sales-focused persuasion."
+    },
+    {
+      "criterionId": "risk_transparency",
+      "weight": 1.4,
+      "reason": "The client explicitly demands clear documentation of assumptions, limitations, and risks because critical inventory decisions depend on this system."
+    },
+    {
+      "criterionId": "completeness",
+      "weight": 1.2,
+      "reason": "The client lists multiple operational and support components, including SLAs and onboarding plans, that must all be delivered."
+    }
+  ],
+  "signals": {
+    "vaguePhrases": [
+      {
+        "phrase": "shortly after",
+        "section": "§5",
+        "context": "We will begin work shortly after contract signing and aim to deliver the solution in a timely manner, with regular updates along the…"
+      },
+      {
+        "phrase": "in a timely manner",
+        "section": "§5",
+        "context": "We will begin work shortly after contract signing and aim to deliver the solution in a timely manner, with regular updates along the way."
+      },
+      {
+        "phrase": "will be provided",
+        "section": "§6",
+        "context": "Pricing will be provided upon further discussion of detailed requirements, and will depend on final scope."
+      },
+      {
+        "phrase": "upon further discussion",
+        "section": "§6",
+        "context": "Pricing will be provided upon further discussion of detailed requirements, and will depend on final scope."
+      },
+      {
+        "phrase": "depend on final scope",
+        "section": "§6",
+        "context": "Pricing will be provided upon further discussion of detailed requirements, and will depend on final scope."
+      }
+    ],
+    "pricing": {
+      "sections": [
+        "§6"
+      ],
+      "mentions": []
+    },
+    "timeline": {
+      "sections": [
+        "§5"
+      ],
+      "mentions": []
+    }
+  },
+  "sections": {
+    "rfp": {
+      "count": 6,
+      "sections": [
+        {
+          "id": "§0",
+          "header": "Request for Proposal — Warehouse Inventory Dashboard"
+        },
+        {
+          "id": "§1",
+          "header": "Background"
+        },
+        {
+          "id": "§2",
+          "header": "Requirements"
+        },
+        {
+          "id": "§3",
+          "header": "Budget"
+        },
+        {
+          "id": "§4",
+          "header": "Timeline"
+        },
+        {
+          "id": "§5",
+          "header": "Decision Date"
+        }
+      ]
+    },
+    "proposal": {
+      "count": 8,
+      "sections": [
+        {
+          "id": "§0",
+          "header": "Proposal: Inventory Visibility Solution for NordFrame Logistics"
+        },
+        {
+          "id": "§1",
+          "header": "Introduction"
+        },
+        {
+          "id": "§2",
+          "header": "Our Understanding"
+        },
+        {
+          "id": "§3",
+          "header": "Our Approach"
+        },
+        {
+          "id": "§4",
+          "header": "Features"
+        },
+        {
+          "id": "§5",
+          "header": "Timeline"
+        },
+        {
+          "id": "§6",
+          "header": "Pricing"
+        },
+        {
+          "id": "§7",
+          "header": "Why BrightPath"
+        }
+      ]
+    }
+  },
+  "partial": false,
+  "error": null,
+  "warnings": [],
+  "meta": {
+    "model": "gemini-3.8-flash",
+    "temperature": 0.0,
+    "promptVersion": "4",
+    "mode": "split",
+    "durationMs": 10830,
+    "llmCalls": 5,
+    "truncated": 0,
+    "repaired": 0,
+    "ungroundedDropped": 0,
+    "fuzzyMatched": 2,
+    "extractCached": false,
+    "scoreCached": false
+  }
+}

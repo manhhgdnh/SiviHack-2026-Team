@@ -1,0 +1,13 @@
+{
+ "kind": "coverage",
+ "model": "gemini-3.8-flash",
+ "prompt_head": "You check a draft PROPOSAL against the client's REQUIREMENTS and CONSTRAINTS. Th",
+ "truncated": false,
+ "usage": {
+  "prompt": 2062,
+  "output": 336,
+  "thinking": 1146,
+  "cached": 0
+ },
+ "text": "{\"coverage\":[{\"requirementId\":\"r1\",\"status\":\"ADDRESSED\",\"proposalSection\":\"§2.1\",\"proposalQuote\":null,\"explanation\":null,\"fix\":null},{\"requirementId\":\"r2\",\"status\":\"ADDRESSED\",\"proposalSection\":\"§2.2\",\"proposalQuote\":null,\"explanation\":null,\"fix\":null},{\"requirementId\":\"r3\",\"status\":\"ADDRESSED\",\"proposalSection\":\"§2.1\",\"proposalQuote\":null,\"explanation\":null,\"fix\":null},{\"requirementId\":\"r4\",\"status\":\"ADDRESSED\",\"proposalSection\":\"§2.3\",\"proposalQuote\":null,\"explanation\":null,\"fix\":null},{\"requirementId\":\"r5\",\"status\":\"ADDRESSED\",\"proposalSection\":\"§2.4\",\"proposalQuote\":null,\"explanation\":null,\"fix\":null},{\"requirementId\":\"r6\",\"status\":\"ADDRESSED\",\"proposalSection\":\"§2.5\",\"proposalQuote\":null,\"explanation\":null,\"fix\":null},{\"requirementId\":\"r7\",\"status\":\"ADDRESSED\",\"proposalSection\":\"§4\",\"proposalQuote\":null,\"explanation\":null,\"fix\":null},{\"requirementId\":\"r8\",\"status\":\"ADDRESSED\",\"proposalSection\":\"§3\",\"proposalQuote\":null,\"explanation\":null,\"fix\":null},{\"requirementId\":\"r9\",\"status\":\"ADDRESSED\",\"proposalSection\":\"§2.4\",\"proposalQuote\":null,\"explanation\":null,\"fix\":null},{\"requirementId\":\"r10\",\"status\":\"ADDRESSED\",\"proposalSection\":\"§2.4\",\"proposalQuote\":null,\"explanation\":null,\"fix\":null}],\"constraintViolations\":[]}"
+}

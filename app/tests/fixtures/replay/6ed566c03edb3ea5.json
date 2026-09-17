@@ -1,0 +1,13 @@
+{
+ "kind": "group:commercials",
+ "model": "gemini-3.8-flash",
+ "prompt_head": "You score a draft PROPOSAL on 3 review criteria. Group id: commercials. Other re",
+ "truncated": false,
+ "usage": {
+  "prompt": 2511,
+  "output": 447,
+  "thinking": 0,
+  "cached": 0
+ },
+ "text": "{\n  \"findings\": [],\n  \"scores\": [\n    {\n      \"id\": \"scope_clarity\",\n      \"label\": \"Scope & Deliverables Clarity\",\n      \"score\": 4,\n      \"strengths\": \"The proposal clearly outlines each requested feature and explicitly specifies technical boundaries such as read-only database connections and query-level access control.\",\n      \"weaknesses\": \"Explicit out-of-scope exclusions beyond the database schema constraint are not formally detailed.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§2.1\",\n          \"quote\": \"no migration or schema changes required.\"\n        }\n      ],\n      \"note\": null\n    },\n    {\n      \"id\": \"pricing_clarity\",\n      \"label\": \"Pricing Clarity\",\n      \"score\": 5,\n      \"strengths\": \"The pricing section provides an itemized cost breakdown for each component with a total explicitly confirmed within the client's stated budget.\",\n      \"weaknesses\": \"None noted.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§3\",\n          \"quote\": \"€102,000 (within your stated budget)\"\n        }\n      ],\n      \"note\": null\n    },\n    {\n      \"id\": \"timeline_clarity\",\n      \"label\": \"Timeline Clarity\",\n      \"score\": 5,\n      \"strengths\": \"The rollout plan maps out clear weekly milestones for the pilot, validation, and phased rollout directly against the client's deadlines.\",\n      \"weaknesses\": \"None noted.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§2.4\",\n          \"quote\": \"Remaining 5 warehouses added in 2 batches, Weeks 13–24 (within your 6-month target)\"\n        }\n      ],\n      \"note\": null\n    }\n  ]\n}"
+}

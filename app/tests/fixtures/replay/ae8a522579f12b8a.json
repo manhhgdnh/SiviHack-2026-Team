@@ -1,0 +1,13 @@
+{
+ "kind": "group:understanding",
+ "model": "gemini-3.8-flash",
+ "prompt_head": "You score a draft PROPOSAL on 2 review criteria. Group id: understanding. Other ",
+ "truncated": false,
+ "usage": {
+  "prompt": 2569,
+  "output": 428,
+  "thinking": 0,
+  "cached": 0
+ },
+ "text": "{\n  \"findings\": [],\n  \"scores\": [\n    {\n      \"id\": \"problem_understanding\",\n      \"label\": \"Problem Understanding\",\n      \"score\": 5,\n      \"strengths\": \"The proposal accurately reflects NordFrame's multi-site operational setup, existing tooling, and technical constraints directly in the client's context.\",\n      \"weaknesses\": \"None noted, as all core requirements, constraints, and operational contexts are thoroughly addressed.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§1\",\n          \"quote\": \"NordFrame operates 6 warehouses across Germany and Austria, currently tracked via spreadsheets and a legacy system.\"\n        },\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§2.1\",\n          \"quote\": \"refreshed continuously from your existing PostgreSQL database via a read-only connector — no migration or schema changes required.\"\n        }\n      ],\n      \"note\": null\n    },\n    {\n      \"id\": \"tone_persuasiveness\",\n      \"label\": \"Tone & Persuasiveness\",\n      \"score\": 5,\n      \"strengths\": \"The proposal maintains a confident, client-centric tone supported by concrete implementation details and relevant past domain experience.\",\n      \"weaknesses\": \"None noted, as the narrative remains highly specific to NordFrame rather than reliant on generic sales boilerplate.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§2.3\",\n          \"quote\": \"Access is enforced at the database query level, not just hidden in the UI.\"\n        },\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§5\",\n          \"quote\": \"delivered similar inventory visibility platforms for two regional logistics operators in the past two years\"\n        }\n      ],\n      \"note\": null\n    }\n  ]\n}"
+}

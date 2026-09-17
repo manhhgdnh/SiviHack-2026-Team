@@ -1,0 +1,13 @@
+{
+ "kind": "group:risk",
+ "model": "gemini-3.8-flash",
+ "prompt_head": "You score a draft PROPOSAL on 1 review criterion. Group id: risk. Other reviewer",
+ "truncated": false,
+ "usage": {
+  "prompt": 1908,
+  "output": 162,
+  "thinking": 0,
+  "cached": 0
+ },
+ "text": "{\n  \"findings\": [],\n  \"scores\": [\n    {\n      \"id\": \"risk_transparency\",\n      \"label\": \"Risk/Assumptions Transparency\",\n      \"score\": 1,\n      \"strengths\": null,\n      \"weaknesses\": \"The proposal entirely omits risks, dependencies, and assumptions despite the RFP explicitly demanding documentation of assumptions, limitations, and risks.\",\n      \"citations\": [\n        {\n          \"source\": \"rfp\",\n          \"section\": \"§0\",\n          \"quote\": \"Clear documentation of any assumptions, limitations, or risks, since inventory decisions will be made based on this system.\"\n        }\n      ],\n      \"note\": null\n    }\n  ]\n}"
+}

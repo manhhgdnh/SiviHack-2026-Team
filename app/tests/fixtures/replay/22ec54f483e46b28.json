@@ -1,0 +1,13 @@
+{
+ "kind": "group:understanding",
+ "model": "gemini-3.8-flash",
+ "prompt_head": "You score a draft PROPOSAL on 2 review criteria. Group id: understanding. Other ",
+ "truncated": false,
+ "usage": {
+  "prompt": 1043,
+  "output": 354,
+  "thinking": 0,
+  "cached": 0
+ },
+ "text": "{\n  \"findings\": [],\n  \"scores\": [\n    {\n      \"id\": \"problem_understanding\",\n      \"label\": \"Problem Understanding\",\n      \"score\": 3,\n      \"strengths\": \"The proposal accurately identifies NordFrame's current setup across six warehouses and the operational visibility challenge it creates.\",\n      \"weaknesses\": \"In §1, the statement 'making real-time visibility difficult' only restates the high-level operational problem without exploring deeper business impacts or workflow constraints.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§1\",\n          \"quote\": \"NordFrame's six warehouses currently rely on spreadsheets and a legacy system, making real-time visibility difficult.\"\n        }\n      ],\n      \"note\": null\n    },\n    {\n      \"id\": \"tone_persuasiveness\",\n      \"label\": \"Tone & Persuasiveness\",\n      \"score\": 3,\n      \"strengths\": \"The proposal maintains a professional and clear tone while tailoring solution features specifically to warehouse and HQ operational roles.\",\n      \"weaknesses\": \"In §5, 'Clarion has delivered inventory and logistics dashboards for several mid-size distribution companies' remains generic without concrete metrics or specific evidence of past success.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§5\",\n          \"quote\": \"Clarion has delivered inventory and logistics dashboards for several mid-size distribution companies across the DACH region.\"\n        }\n      ],\n      \"note\": null\n    }\n  ]\n}"
+}

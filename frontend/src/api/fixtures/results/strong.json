@@ -1,0 +1,579 @@
+{
+  "overall": 4.57,
+  "weights": {
+    "problem_understanding": 1.0,
+    "scope_clarity": 1.0,
+    "pricing_clarity": 1.0,
+    "timeline_clarity": 1.0,
+    "completeness": 1.0,
+    "tone_persuasiveness": 1.0,
+    "risk_transparency": 1.0
+  },
+  "scores": [
+    {
+      "id": "problem_understanding",
+      "label": "Problem Understanding",
+      "score": 5,
+      "strengths": "The proposal accurately reflects NordFrame's multi-site operational setup, existing tooling, and technical constraints directly in the client's context.",
+      "weaknesses": "None noted, as all core requirements, constraints, and operational contexts are thoroughly addressed.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§1",
+          "quote": "NordFrame operates 6 warehouses across Germany and Austria, currently tracked via spreadsheets and a legacy system.",
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§2.1",
+          "quote": "refreshed continuously from your existing PostgreSQL database via a read-only connector — no migration or schema changes required.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "scope_clarity",
+      "label": "Scope & Deliverables Clarity",
+      "score": 4,
+      "strengths": "The proposal clearly outlines each requested feature and explicitly specifies technical boundaries such as read-only database connections and query-level access control.",
+      "weaknesses": "Explicit out-of-scope exclusions beyond the database schema constraint are not formally detailed.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§2.1",
+          "quote": "no migration or schema changes required.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "pricing_clarity",
+      "label": "Pricing Clarity",
+      "score": 5,
+      "strengths": "The pricing section provides an itemized cost breakdown for each component with a total explicitly confirmed within the client's stated budget.",
+      "weaknesses": "None noted.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§3",
+          "quote": "€102,000 (within your stated budget)",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "timeline_clarity",
+      "label": "Timeline Clarity",
+      "score": 5,
+      "strengths": "The rollout plan maps out clear weekly milestones for the pilot, validation, and phased rollout directly against the client's deadlines.",
+      "weaknesses": "None noted.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§2.4",
+          "quote": "Remaining 5 warehouses added in 2 batches, Weeks 13–24 (within your 6-month target)",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "completeness",
+      "label": "Completeness vs. RFP Requirements",
+      "score": 5,
+      "strengths": "10 of 10 requirements addressed: r1 Web-based inventory dashboard, r2 Automated low-stock alerts, r3 PostgreSQL database integration, r4 Role-based access control, r5 Data migration and onboarding plan, r6 Support and maintenance terms, r7 Documentation of risks and assumptions, r8 Total project budget, r9 Pilot delivery timeline, r10 Full rollout timeline.",
+      "weaknesses": "Every requirement is addressed.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§2.1",
+          "quote": null,
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§2.2",
+          "quote": null,
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§2.3",
+          "quote": null,
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§2.4",
+          "quote": null,
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§2.5",
+          "quote": null,
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§4",
+          "quote": null,
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§3",
+          "quote": null,
+          "grounding": "verified"
+        }
+      ],
+      "note": "computed from coverage: 10/10 credit (ADDRESSED = 1, PARTIAL = 0.5, MISSING / CONTRADICTED = 0)"
+    },
+    {
+      "id": "tone_persuasiveness",
+      "label": "Tone & Persuasiveness",
+      "score": 5,
+      "strengths": "The proposal maintains a confident, client-centric tone supported by concrete implementation details and relevant past domain experience.",
+      "weaknesses": "None noted, as the narrative remains highly specific to NordFrame rather than reliant on generic sales boilerplate.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§2.3",
+          "quote": "Access is enforced at the database query level, not just hidden in the UI.",
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§5",
+          "quote": "delivered similar inventory visibility platforms for two regional logistics operators in the past two years",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "risk_transparency",
+      "label": "Risk/Assumptions Transparency",
+      "score": 3,
+      "strengths": "The proposal transparently articulates core operational assumptions regarding database access, onboarding points-of-contact, and alert threshold fine-tuning.",
+      "weaknesses": "In §4, risks and assumptions are listed with potential schedule impacts, but no specific mitigation plans or contingency measures are provided if onboarding or schema delays occur.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§4",
+          "quote": "delays here would shift the Week 13–24 plan proportionally.",
+          "grounding": "verified"
+        },
+        {
+          "source": "rfp",
+          "section": "§2",
+          "quote": "Clear documentation of any assumptions, limitations, or risks, since inventory decisions will be made based on this system.",
+          "grounding": "fuzzy"
+        }
+      ],
+      "note": null
+    }
+  ],
+  "coverage": [
+    {
+      "requirementId": "r1",
+      "status": "ADDRESSED",
+      "proposalSection": "§2.1",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r2",
+      "status": "ADDRESSED",
+      "proposalSection": "§2.2",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r3",
+      "status": "ADDRESSED",
+      "proposalSection": "§2.1",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r4",
+      "status": "ADDRESSED",
+      "proposalSection": "§2.3",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r5",
+      "status": "ADDRESSED",
+      "proposalSection": "§2.4",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r6",
+      "status": "ADDRESSED",
+      "proposalSection": "§2.5",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r7",
+      "status": "ADDRESSED",
+      "proposalSection": "§4",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r8",
+      "status": "ADDRESSED",
+      "proposalSection": "§3",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r9",
+      "status": "ADDRESSED",
+      "proposalSection": "§2.4",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r10",
+      "status": "ADDRESSED",
+      "proposalSection": "§2.4",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    }
+  ],
+  "constraintViolations": [],
+  "findings": [],
+  "requirements": [
+    {
+      "id": "r1",
+      "label": "Web-based inventory dashboard",
+      "rfpQuote": "A web-based dashboard showing real-time inventory levels across all 6 warehouses.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r2",
+      "label": "Automated low-stock alerts",
+      "rfpQuote": "Automated low-stock alerts sent to warehouse managers when items fall below a configurable threshold.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r3",
+      "label": "PostgreSQL database integration",
+      "rfpQuote": "Integration with our existing PostgreSQL inventory database",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r4",
+      "label": "Role-based access control",
+      "rfpQuote": "Role-based access — warehouse managers should only see their own site; HQ staff should see all sites.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r5",
+      "label": "Data migration and onboarding plan",
+      "rfpQuote": "A data migration / onboarding plan for rolling this out across all 6 sites with minimal disruption.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r6",
+      "label": "Support and maintenance terms",
+      "rfpQuote": "Support & maintenance terms after go-live (response times, SLAs).",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r7",
+      "label": "Documentation of risks and assumptions",
+      "rfpQuote": "Clear documentation of any assumptions, limitations, or risks, since inventory decisions will be made based on this system.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r8",
+      "label": "Total project budget",
+      "rfpQuote": "€80,000–€120,000 total, including first year of support.",
+      "section": "§3",
+      "grounding": "verified"
+    },
+    {
+      "id": "r9",
+      "label": "Pilot delivery timeline",
+      "rfpQuote": "Working pilot at one warehouse within 3 months;",
+      "section": "§4",
+      "grounding": "verified"
+    },
+    {
+      "id": "r10",
+      "label": "Full rollout timeline",
+      "rfpQuote": "full rollout to all 6 sites within 6 months.",
+      "section": "§4",
+      "grounding": "verified"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "c1",
+      "kind": "TECHNOLOGY",
+      "label": "No database migration",
+      "rfpQuote": "no migration to a new database.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "c2",
+      "kind": "BUDGET",
+      "label": "Budget ceiling",
+      "rfpQuote": "€80,000–€120,000 total, including first year of support.",
+      "section": "§3",
+      "grounding": "verified"
+    },
+    {
+      "id": "c3",
+      "kind": "DEADLINE",
+      "label": "Pilot delivery deadline",
+      "rfpQuote": "Working pilot at one warehouse within 3 months;",
+      "section": "§4",
+      "grounding": "verified"
+    },
+    {
+      "id": "c4",
+      "kind": "DEADLINE",
+      "label": "Full rollout deadline",
+      "rfpQuote": "full rollout to all 6 sites within 6 months.",
+      "section": "§4",
+      "grounding": "verified"
+    }
+  ],
+  "suggestedWeights": [
+    {
+      "criterionId": "problem_understanding",
+      "weight": 1.2,
+      "reason": "The RFP notes challenges with split tracking across spreadsheets and legacy systems that obscure cross-site visibility."
+    },
+    {
+      "criterionId": "scope_clarity",
+      "weight": 1.3,
+      "reason": "Clear delineations of access roles and rollout deliverables across six distinct sites are explicitly demanded."
+    },
+    {
+      "criterionId": "pricing_clarity",
+      "weight": 1.2,
+      "reason": "The client specifies a clear budget range that must explicitly include the first year of support."
+    },
+    {
+      "criterionId": "timeline_clarity",
+      "weight": 1.3,
+      "reason": "Strict phased delivery deadlines are specified for both a 3-month pilot and a 6-month full rollout."
+    },
+    {
+      "criterionId": "tone_persuasiveness",
+      "weight": 0.8,
+      "reason": "The requirements emphasize operational viability and technical adherence over marketing or sales-focused persuasion."
+    },
+    {
+      "criterionId": "risk_transparency",
+      "weight": 1.4,
+      "reason": "The client explicitly demands clear documentation of assumptions, limitations, and risks because critical inventory decisions depend on this system."
+    },
+    {
+      "criterionId": "completeness",
+      "weight": 1.2,
+      "reason": "The client lists multiple operational and support components, including SLAs and onboarding plans, that must all be delivered."
+    }
+  ],
+  "signals": {
+    "vaguePhrases": [],
+    "pricing": {
+      "sections": [
+        "§3"
+      ],
+      "mentions": [
+        {
+          "value": "€58,000",
+          "section": "§3"
+        },
+        {
+          "value": "€14,000",
+          "section": "§3"
+        },
+        {
+          "value": "€12,000",
+          "section": "§3"
+        },
+        {
+          "value": "€18,000",
+          "section": "§3"
+        },
+        {
+          "value": "€102,000",
+          "section": "§3"
+        }
+      ]
+    },
+    "timeline": {
+      "sections": [
+        "§2.4"
+      ],
+      "mentions": [
+        {
+          "value": "Weeks 1–10",
+          "section": "§2.4"
+        },
+        {
+          "value": "3-month",
+          "section": "§2.4"
+        },
+        {
+          "value": "2 weeks",
+          "section": "§2.4"
+        },
+        {
+          "value": "Weeks 13–24",
+          "section": "§2.4"
+        },
+        {
+          "value": "6-month",
+          "section": "§2.4"
+        },
+        {
+          "value": "Week 13–24",
+          "section": "§4"
+        },
+        {
+          "value": "3 weeks",
+          "section": "§4"
+        }
+      ]
+    }
+  },
+  "sections": {
+    "rfp": {
+      "count": 6,
+      "sections": [
+        {
+          "id": "§0",
+          "header": "Request for Proposal — Warehouse Inventory Dashboard"
+        },
+        {
+          "id": "§1",
+          "header": "Background"
+        },
+        {
+          "id": "§2",
+          "header": "Requirements"
+        },
+        {
+          "id": "§3",
+          "header": "Budget"
+        },
+        {
+          "id": "§4",
+          "header": "Timeline"
+        },
+        {
+          "id": "§5",
+          "header": "Decision Date"
+        }
+      ]
+    },
+    "proposal": {
+      "count": 11,
+      "sections": [
+        {
+          "id": "§0",
+          "header": "Proposal: Inventory Intelligence Platform for NordFrame Logistics"
+        },
+        {
+          "id": "§1",
+          "header": "Our Understanding"
+        },
+        {
+          "id": "§2",
+          "header": "Proposed Solution"
+        },
+        {
+          "id": "§2.1",
+          "header": "1. Real-Time Dashboard"
+        },
+        {
+          "id": "§2.2",
+          "header": "2. Low-Stock Alerts"
+        },
+        {
+          "id": "§2.3",
+          "header": "3. Role-Based Access"
+        },
+        {
+          "id": "§2.4",
+          "header": "4. Rollout / Onboarding Plan"
+        },
+        {
+          "id": "§2.5",
+          "header": "5. Support & Maintenance"
+        },
+        {
+          "id": "§3",
+          "header": "Pricing"
+        },
+        {
+          "id": "§4",
+          "header": "Risks & Assumptions"
+        },
+        {
+          "id": "§5",
+          "header": "Why Fernglow"
+        }
+      ]
+    }
+  },
+  "partial": false,
+  "error": null,
+  "warnings": [],
+  "meta": {
+    "model": "gemini-3.8-flash",
+    "temperature": 0.0,
+    "promptVersion": "4",
+    "mode": "split",
+    "durationMs": 7268,
+    "llmCalls": 5,
+    "truncated": 0,
+    "repaired": 0,
+    "ungroundedDropped": 0,
+    "fuzzyMatched": 1,
+    "extractCached": false,
+    "scoreCached": false
+  }
+}

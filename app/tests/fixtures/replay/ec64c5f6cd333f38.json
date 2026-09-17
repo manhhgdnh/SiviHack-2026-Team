@@ -1,0 +1,13 @@
+{
+ "kind": "group:understanding",
+ "model": "gemini-3.8-flash",
+ "prompt_head": "You score a draft PROPOSAL on 2 review criteria. Group id: understanding. Other ",
+ "truncated": false,
+ "usage": {
+  "prompt": 2348,
+  "output": 391,
+  "thinking": 0,
+  "cached": 0
+ },
+ "text": "{\n  \"findings\": [],\n  \"scores\": [\n    {\n      \"id\": \"problem_understanding\",\n      \"label\": \"Problem Understanding\",\n      \"score\": 1,\n      \"strengths\": null,\n      \"weaknesses\": \"The proposal ignores core constraints and operational requirements, insisting in §2 on migrating away from PostgreSQL despite the explicit prohibition in §2 of the RFP.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§2\",\n          \"quote\": \"migrating away from your current PostgreSQL database to our proprietary cloud data platform\"\n        },\n        {\n          \"source\": \"rfp\",\n          \"section\": \"§2\",\n          \"quote\": \"Integration with our existing PostgreSQL inventory database — no migration to a new database.\"\n        }\n      ],\n      \"note\": \"A score of 1 is required due to severe constraint violation and lack of alignment with operational needs.\"\n    },\n    {\n      \"id\": \"tone_persuasiveness\",\n      \"label\": \"Tone & Persuasiveness\",\n      \"score\": 1,\n      \"strengths\": null,\n      \"weaknesses\": \"The proposal adopts an overly sales-driven, vendor-centric tone in §1 that dismisses the client's explicit requirements in favor of an unrequested proprietary suite.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§1\",\n          \"quote\": \"NordFrame deserves more than a simple dashboard. We propose a full AI-Powered Supply Chain Intelligence Suite\"\n        }\n      ],\n      \"note\": \"Tone is vendor-centric rather than focused on the client's stated scope and architecture constraints.\"\n    }\n  ]\n}"
+}

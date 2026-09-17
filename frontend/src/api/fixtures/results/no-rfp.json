@@ -1,0 +1,231 @@
+{
+  "overall": 2.5,
+  "weights": {
+    "problem_understanding": 1.0,
+    "scope_clarity": 1.0,
+    "pricing_clarity": 1.0,
+    "timeline_clarity": 1.0,
+    "completeness": 1.0,
+    "tone_persuasiveness": 1.0,
+    "risk_transparency": 1.0
+  },
+  "scores": [
+    {
+      "id": "problem_understanding",
+      "label": "Problem Understanding",
+      "score": 3,
+      "strengths": "The proposal accurately identifies NordFrame's current setup across six warehouses and the operational visibility challenge it creates.",
+      "weaknesses": "In §1, the statement 'making real-time visibility difficult' only restates the high-level operational problem without exploring deeper business impacts or workflow constraints.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§1",
+          "quote": "NordFrame's six warehouses currently rely on spreadsheets and a legacy system, making real-time visibility difficult.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "scope_clarity",
+      "label": "Scope & Deliverables Clarity",
+      "score": 3,
+      "strengths": "Key platform capabilities and deployment strategy are clearly enumerated.",
+      "weaknesses": "The proposal does not define out-of-scope boundaries or specify concrete technical deliverables beyond high-level features in §2.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§2",
+          "quote": "real-time inventory levels across all 6 warehouses, built on top of your existing PostgreSQL database",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "pricing_clarity",
+      "label": "Pricing Clarity",
+      "score": 3,
+      "strengths": "The proposal offers an estimated total budget range for the deployment.",
+      "weaknesses": "In §4, Clarion provides only a wide price range without itemised cost breakdowns and defers firm pricing.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§4",
+          "quote": "range from €70,000 to €110,000 depending on final integration complexity.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "timeline_clarity",
+      "label": "Timeline Clarity",
+      "score": 2,
+      "strengths": "The logical sequence of phases from discovery to rollout is identified.",
+      "weaknesses": "In §3, Clarion includes zero explicit dates or phase durations, stating instead that exact scheduling will be confirmed later.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§3",
+          "quote": "We will begin with discovery and design, followed by a pilot phase",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "completeness",
+      "label": "Completeness vs. RFP Requirements",
+      "score": null,
+      "strengths": null,
+      "weaknesses": "",
+      "citations": [],
+      "note": "not assessable: no RFP provided"
+    },
+    {
+      "id": "tone_persuasiveness",
+      "label": "Tone & Persuasiveness",
+      "score": 3,
+      "strengths": "The proposal maintains a professional and clear tone while tailoring solution features specifically to warehouse and HQ operational roles.",
+      "weaknesses": "In §5, 'Clarion has delivered inventory and logistics dashboards for several mid-size distribution companies' remains generic without concrete metrics or specific evidence of past success.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§5",
+          "quote": "Clarion has delivered inventory and logistics dashboards for several mid-size distribution companies across the DACH region.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "risk_transparency",
+      "label": "Risk/Assumptions Transparency",
+      "score": 1,
+      "strengths": null,
+      "weaknesses": "The proposal fails to disclose any risks, dependencies, assumptions, or mitigations across any of its sections.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§3",
+          "quote": "Exact scheduling will be confirmed once we begin discovery.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    }
+  ],
+  "coverage": [],
+  "constraintViolations": [],
+  "findings": [
+    {
+      "type": "VAGUENESS",
+      "severity": "HIGH",
+      "location": "§3",
+      "proposalQuote": "Exact scheduling will be confirmed once we begin discovery.",
+      "explanation": "Deferring schedule details leaves the client without any predictable milestones or commitment to delivery windows.",
+      "fix": "Specify concrete phase durations and target milestone dates such as [duration] for discovery and pilot phases.",
+      "grounding": "verified"
+    },
+    {
+      "type": "VAGUENESS",
+      "severity": "MEDIUM",
+      "location": "§4",
+      "proposalQuote": "We will provide a firm quote after discovery.",
+      "explanation": "Leaving the budget open to post-discovery confirmation prevents the client from assessing definitive financial commitments.",
+      "fix": "Provide a fixed fee or an itemized breakdown defining the scope covered by each cost tier.",
+      "grounding": "verified"
+    }
+  ],
+  "requirements": [],
+  "constraints": [],
+  "suggestedWeights": [],
+  "signals": {
+    "vaguePhrases": [
+      {
+        "phrase": "will be confirmed",
+        "section": "§3",
+        "context": "…ilot phase, and aim to complete full rollout within the timeframe you've outlined. Exact scheduling will be confirmed once we begin discovery."
+      },
+      {
+        "phrase": "after discovery",
+        "section": "§4",
+        "context": "…ge from €70,000 to €110,000 depending on final integration complexity. We will provide a firm quote after discovery."
+      }
+    ],
+    "pricing": {
+      "sections": [
+        "§4"
+      ],
+      "mentions": [
+        {
+          "value": "€70,000",
+          "section": "§4"
+        },
+        {
+          "value": "€110,000",
+          "section": "§4"
+        }
+      ]
+    },
+    "timeline": {
+      "sections": [
+        "§3"
+      ],
+      "mentions": []
+    }
+  },
+  "sections": {
+    "rfp": {
+      "count": 0,
+      "sections": []
+    },
+    "proposal": {
+      "count": 6,
+      "sections": [
+        {
+          "id": "§0",
+          "header": "Proposal: Warehouse Visibility Platform for NordFrame Logistics"
+        },
+        {
+          "id": "§1",
+          "header": "Our Understanding"
+        },
+        {
+          "id": "§2",
+          "header": "Proposed Solution"
+        },
+        {
+          "id": "§3",
+          "header": "Timeline"
+        },
+        {
+          "id": "§4",
+          "header": "Pricing"
+        },
+        {
+          "id": "§5",
+          "header": "Why Clarion"
+        }
+      ]
+    }
+  },
+  "partial": false,
+  "error": null,
+  "warnings": [],
+  "meta": {
+    "model": "gemini-3.8-flash",
+    "temperature": 0.0,
+    "promptVersion": "4",
+    "mode": "split",
+    "durationMs": 4244,
+    "llmCalls": 3,
+    "truncated": 0,
+    "repaired": 0,
+    "ungroundedDropped": 0,
+    "fuzzyMatched": 0,
+    "extractCached": false,
+    "scoreCached": false
+  }
+}

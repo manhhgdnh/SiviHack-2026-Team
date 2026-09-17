@@ -1,0 +1,13 @@
+{
+ "kind": "group:risk",
+ "model": "gemini-3.8-flash",
+ "prompt_head": "You score a draft PROPOSAL on 1 review criterion. Group id: risk. Other reviewer",
+ "truncated": false,
+ "usage": {
+  "prompt": 1949,
+  "output": 374,
+  "thinking": 0,
+  "cached": 0
+ },
+ "text": "{\n  \"findings\": [\n    {\n      \"type\": \"OVERCOMMIT\",\n      \"severity\": \"HIGH\",\n      \"location\": \"§3\",\n      \"proposalQuote\": \"we are confident we can deliver the complete suite — including the platform migration and all analytics modules — within 8 weeks\",\n      \"explanation\": \"Promising a complete proprietary platform migration and custom AI suite within eight weeks is an unrealistic timeline that introduces severe delivery and operational risks for the client.\",\n      \"fix\": \"Adjust the delivery schedule to realistic phase milestones that align with the client's operational capacity.\"\n    }\n  ],\n  \"scores\": [\n    {\n      \"id\": \"risk_transparency\",\n      \"label\": \"Risk/Assumptions Transparency\",\n      \"score\": 1,\n      \"strengths\": null,\n      \"weaknesses\": \"The proposal omits all project risks, dependencies, and assumptions requested by the RFP, while completely ignoring the operational risk of a forced database migration.\",\n      \"citations\": [\n        {\n          \"source\": \"rfp\",\n          \"section\": \"§r7\",\n          \"quote\": \"Clear documentation of any assumptions, limitations, or risks, since inventory decisions will be made based on this system.\"\n        },\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§3\",\n          \"quote\": \"we are confident we can deliver the complete suite — including the platform migration and all analytics modules — within 8 weeks\"\n        }\n      ],\n      \"note\": \"Score is capped at 1 due to the complete lack of risk disclosure combined with an unacknowledged high-severity constraint violation on database migration.\"\n    }\n  ]\n}"
+}

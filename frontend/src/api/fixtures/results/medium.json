@@ -1,0 +1,518 @@
+{
+  "overall": 2.29,
+  "weights": {
+    "problem_understanding": 1.0,
+    "scope_clarity": 1.0,
+    "pricing_clarity": 1.0,
+    "timeline_clarity": 1.0,
+    "completeness": 1.0,
+    "tone_persuasiveness": 1.0,
+    "risk_transparency": 1.0
+  },
+  "scores": [
+    {
+      "id": "problem_understanding",
+      "label": "Problem Understanding",
+      "score": 3,
+      "strengths": "The proposal accurately restates NordFrame's current setup of regional warehouses, legacy tools, and core system constraints.",
+      "weaknesses": "The proposal addresses the problem only at a surface level and completely omits required support terms and risk documentation asked in RFP §2.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§1",
+          "quote": "NordFrame's six warehouses currently rely on spreadsheets and a legacy system, making real-time visibility difficult.",
+          "grounding": "verified"
+        },
+        {
+          "source": "rfp",
+          "section": "§2",
+          "quote": "Clear documentation of any assumptions, limitations, or risks, since inventory decisions will be made based on this system.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "scope_clarity",
+      "label": "Scope & Deliverables Clarity",
+      "score": 3,
+      "strengths": "Core functional features such as the dashboard, alerts, and access controls are explicitly mapped to the client's current setup.",
+      "weaknesses": "In §2, the proposal describes a phased rollout approach without defining specific deliverables, onboarding plans, or migration boundaries.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§2",
+          "quote": "we will onboard warehouses in phases rather than all at once",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "pricing_clarity",
+      "label": "Pricing Clarity",
+      "score": 2,
+      "strengths": "The estimated range falls within the client's stated total budget constraint.",
+      "weaknesses": "In §4, pricing is provided only as an estimated range and defers firm figures with 'We will provide a firm quote after discovery.'",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§4",
+          "quote": "We will provide a firm quote after discovery.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "timeline_clarity",
+      "label": "Timeline Clarity",
+      "score": 1,
+      "strengths": null,
+      "weaknesses": "In §3, the proposal contains zero explicit dates or milestone durations, deferring schedule details entirely with 'Exact scheduling will be confirmed once we begin discovery.'",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§3",
+          "quote": "Exact scheduling will be confirmed once we begin discovery.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "completeness",
+      "label": "Completeness vs. RFP Requirements",
+      "score": 3,
+      "strengths": "4 of 10 requirements addressed: r1 Web-based inventory dashboard, r2 Automated low-stock alerts, r3 PostgreSQL database integration, r4 Role-based access control.",
+      "weaknesses": "6 of 10 requirements not fully addressed: r5 Data migration and onboarding plan (PARTIAL); r6 Support and maintenance terms (MISSING); r7 Documentation of risks and assumptions (MISSING); r8 Total project budget (PARTIAL); r9 Pilot delivery timeline (PARTIAL); r10 Full rollout timeline (PARTIAL).",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§2",
+          "quote": null,
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§4",
+          "quote": null,
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§3",
+          "quote": null,
+          "grounding": "verified"
+        }
+      ],
+      "note": "computed from coverage: 6/10 credit (ADDRESSED = 1, PARTIAL = 0.5, MISSING / CONTRADICTED = 0)"
+    },
+    {
+      "id": "tone_persuasiveness",
+      "label": "Tone & Persuasiveness",
+      "score": 3,
+      "strengths": "The tone remains professional, straightforward, and includes relevant regional experience in the DACH logistics domain.",
+      "weaknesses": "The response is overly generic and lacks persuasive commitment, repeatedly deferring firm pricing and schedules to post-discovery in §3 and §4.",
+      "citations": [
+        {
+          "source": "proposal",
+          "section": "§3",
+          "quote": "Exact scheduling will be confirmed once we begin discovery.",
+          "grounding": "verified"
+        },
+        {
+          "source": "proposal",
+          "section": "§5",
+          "quote": "Clarion has delivered inventory and logistics dashboards for several mid-size distribution companies across the DACH region.",
+          "grounding": "verified"
+        }
+      ],
+      "note": null
+    },
+    {
+      "id": "risk_transparency",
+      "label": "Risk/Assumptions Transparency",
+      "score": 1,
+      "strengths": null,
+      "weaknesses": "The proposal entirely omits risks, dependencies, and assumptions despite the RFP explicitly demanding documentation of assumptions, limitations, and risks.",
+      "citations": [
+        {
+          "source": "rfp",
+          "section": "§2",
+          "quote": "Clear documentation of any assumptions, limitations, or risks, since inventory decisions will be made based on this system.",
+          "grounding": "fuzzy"
+        }
+      ],
+      "note": null
+    }
+  ],
+  "coverage": [
+    {
+      "requirementId": "r6",
+      "status": "MISSING",
+      "proposalSection": null,
+      "proposalQuote": null,
+      "explanation": "The proposal does not include support and maintenance terms, response times, or SLAs.",
+      "fix": "Add a section defining post-go-live support terms, response times, and service level agreements.",
+      "grounding": null
+    },
+    {
+      "requirementId": "r7",
+      "status": "MISSING",
+      "proposalSection": null,
+      "proposalQuote": null,
+      "explanation": "The proposal completely omits any documentation of assumptions, limitations, or risks.",
+      "fix": "Add a section documenting project assumptions, technical limitations, and operational risks.",
+      "grounding": null
+    },
+    {
+      "requirementId": "r5",
+      "status": "PARTIAL",
+      "proposalSection": "§2",
+      "proposalQuote": "we will onboard warehouses in phases rather than all at once, to reduce disruption during the transition.",
+      "explanation": "Phased onboarding is mentioned, but a specific data migration and onboarding plan is missing.",
+      "fix": "Detail the data migration steps and warehouse onboarding plan in §2.",
+      "grounding": "verified"
+    },
+    {
+      "requirementId": "r8",
+      "status": "PARTIAL",
+      "proposalSection": "§4",
+      "proposalQuote": "range from €70,000 to €110,000 depending on final integration complexity. We will provide a firm quote after discovery.",
+      "explanation": "Price is an estimate deferred to discovery and does not confirm first-year support inclusion.",
+      "fix": "State a firm price within [amount] that explicitly includes the first year of support in §4.",
+      "grounding": "verified"
+    },
+    {
+      "requirementId": "r9",
+      "status": "PARTIAL",
+      "proposalSection": "§3",
+      "proposalQuote": "followed by a pilot phase, and aim to complete full rollout within the timeframe you've outlined.",
+      "explanation": "Mentions a pilot phase but does not commit to the three-month delivery timeline.",
+      "fix": "Explicitly confirm in §3 that the working pilot will be delivered within 3 months.",
+      "grounding": "verified"
+    },
+    {
+      "requirementId": "r10",
+      "status": "PARTIAL",
+      "proposalSection": "§3",
+      "proposalQuote": "aim to complete full rollout within the timeframe you've outlined. Exact scheduling will be confirmed once we begin discovery.",
+      "explanation": "Aims for the timeline but defers exact scheduling commitment until discovery.",
+      "fix": "Commit to completing the full six-site rollout within 6 months in §3.",
+      "grounding": "verified"
+    },
+    {
+      "requirementId": "r1",
+      "status": "ADDRESSED",
+      "proposalSection": "§2",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r2",
+      "status": "ADDRESSED",
+      "proposalSection": "§2",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r3",
+      "status": "ADDRESSED",
+      "proposalSection": "§2",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    },
+    {
+      "requirementId": "r4",
+      "status": "ADDRESSED",
+      "proposalSection": "§2",
+      "proposalQuote": null,
+      "explanation": null,
+      "fix": null,
+      "grounding": null
+    }
+  ],
+  "constraintViolations": [],
+  "findings": [
+    {
+      "type": "VAGUENESS",
+      "severity": "HIGH",
+      "location": "§4",
+      "proposalQuote": "We will provide a firm quote after discovery.",
+      "explanation": "Deferring firm pricing prevents NordFrame from verifying whether the project and mandatory first-year support fit within their budget limit.",
+      "fix": "Provide a binding total cost figure with an itemized breakdown including first-year support.",
+      "grounding": "verified"
+    },
+    {
+      "type": "VAGUENESS",
+      "severity": "MEDIUM",
+      "location": "§3",
+      "proposalQuote": "Exact scheduling will be confirmed once we begin discovery.",
+      "explanation": "NordFrame requires hard delivery milestones for the pilot and rollout phases, making deferred scheduling unacceptable.",
+      "fix": "Commit to the 3-month pilot and 6-month full rollout milestones directly in the schedule.",
+      "grounding": "verified"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "r1",
+      "label": "Web-based inventory dashboard",
+      "rfpQuote": "A web-based dashboard showing real-time inventory levels across all 6 warehouses.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r2",
+      "label": "Automated low-stock alerts",
+      "rfpQuote": "Automated low-stock alerts sent to warehouse managers when items fall below a configurable threshold.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r3",
+      "label": "PostgreSQL database integration",
+      "rfpQuote": "Integration with our existing PostgreSQL inventory database",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r4",
+      "label": "Role-based access control",
+      "rfpQuote": "Role-based access — warehouse managers should only see their own site; HQ staff should see all sites.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r5",
+      "label": "Data migration and onboarding plan",
+      "rfpQuote": "A data migration / onboarding plan for rolling this out across all 6 sites with minimal disruption.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r6",
+      "label": "Support and maintenance terms",
+      "rfpQuote": "Support & maintenance terms after go-live (response times, SLAs).",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r7",
+      "label": "Documentation of risks and assumptions",
+      "rfpQuote": "Clear documentation of any assumptions, limitations, or risks, since inventory decisions will be made based on this system.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "r8",
+      "label": "Total project budget",
+      "rfpQuote": "€80,000–€120,000 total, including first year of support.",
+      "section": "§3",
+      "grounding": "verified"
+    },
+    {
+      "id": "r9",
+      "label": "Pilot delivery timeline",
+      "rfpQuote": "Working pilot at one warehouse within 3 months;",
+      "section": "§4",
+      "grounding": "verified"
+    },
+    {
+      "id": "r10",
+      "label": "Full rollout timeline",
+      "rfpQuote": "full rollout to all 6 sites within 6 months.",
+      "section": "§4",
+      "grounding": "verified"
+    }
+  ],
+  "constraints": [
+    {
+      "id": "c1",
+      "kind": "TECHNOLOGY",
+      "label": "No database migration",
+      "rfpQuote": "no migration to a new database.",
+      "section": "§2",
+      "grounding": "verified"
+    },
+    {
+      "id": "c2",
+      "kind": "BUDGET",
+      "label": "Budget ceiling",
+      "rfpQuote": "€80,000–€120,000 total, including first year of support.",
+      "section": "§3",
+      "grounding": "verified"
+    },
+    {
+      "id": "c3",
+      "kind": "DEADLINE",
+      "label": "Pilot delivery deadline",
+      "rfpQuote": "Working pilot at one warehouse within 3 months;",
+      "section": "§4",
+      "grounding": "verified"
+    },
+    {
+      "id": "c4",
+      "kind": "DEADLINE",
+      "label": "Full rollout deadline",
+      "rfpQuote": "full rollout to all 6 sites within 6 months.",
+      "section": "§4",
+      "grounding": "verified"
+    }
+  ],
+  "suggestedWeights": [
+    {
+      "criterionId": "problem_understanding",
+      "weight": 1.2,
+      "reason": "The RFP notes challenges with split tracking across spreadsheets and legacy systems that obscure cross-site visibility."
+    },
+    {
+      "criterionId": "scope_clarity",
+      "weight": 1.3,
+      "reason": "Clear delineations of access roles and rollout deliverables across six distinct sites are explicitly demanded."
+    },
+    {
+      "criterionId": "pricing_clarity",
+      "weight": 1.2,
+      "reason": "The client specifies a clear budget range that must explicitly include the first year of support."
+    },
+    {
+      "criterionId": "timeline_clarity",
+      "weight": 1.3,
+      "reason": "Strict phased delivery deadlines are specified for both a 3-month pilot and a 6-month full rollout."
+    },
+    {
+      "criterionId": "tone_persuasiveness",
+      "weight": 0.8,
+      "reason": "The requirements emphasize operational viability and technical adherence over marketing or sales-focused persuasion."
+    },
+    {
+      "criterionId": "risk_transparency",
+      "weight": 1.4,
+      "reason": "The client explicitly demands clear documentation of assumptions, limitations, and risks because critical inventory decisions depend on this system."
+    },
+    {
+      "criterionId": "completeness",
+      "weight": 1.2,
+      "reason": "The client lists multiple operational and support components, including SLAs and onboarding plans, that must all be delivered."
+    }
+  ],
+  "signals": {
+    "vaguePhrases": [
+      {
+        "phrase": "will be confirmed",
+        "section": "§3",
+        "context": "…ilot phase, and aim to complete full rollout within the timeframe you've outlined. Exact scheduling will be confirmed once we begin discovery."
+      },
+      {
+        "phrase": "after discovery",
+        "section": "§4",
+        "context": "…ge from €70,000 to €110,000 depending on final integration complexity. We will provide a firm quote after discovery."
+      }
+    ],
+    "pricing": {
+      "sections": [
+        "§4"
+      ],
+      "mentions": [
+        {
+          "value": "€70,000",
+          "section": "§4"
+        },
+        {
+          "value": "€110,000",
+          "section": "§4"
+        }
+      ]
+    },
+    "timeline": {
+      "sections": [
+        "§3"
+      ],
+      "mentions": []
+    }
+  },
+  "sections": {
+    "rfp": {
+      "count": 6,
+      "sections": [
+        {
+          "id": "§0",
+          "header": "Request for Proposal — Warehouse Inventory Dashboard"
+        },
+        {
+          "id": "§1",
+          "header": "Background"
+        },
+        {
+          "id": "§2",
+          "header": "Requirements"
+        },
+        {
+          "id": "§3",
+          "header": "Budget"
+        },
+        {
+          "id": "§4",
+          "header": "Timeline"
+        },
+        {
+          "id": "§5",
+          "header": "Decision Date"
+        }
+      ]
+    },
+    "proposal": {
+      "count": 6,
+      "sections": [
+        {
+          "id": "§0",
+          "header": "Proposal: Warehouse Visibility Platform for NordFrame Logistics"
+        },
+        {
+          "id": "§1",
+          "header": "Our Understanding"
+        },
+        {
+          "id": "§2",
+          "header": "Proposed Solution"
+        },
+        {
+          "id": "§3",
+          "header": "Timeline"
+        },
+        {
+          "id": "§4",
+          "header": "Pricing"
+        },
+        {
+          "id": "§5",
+          "header": "Why Clarion"
+        }
+      ]
+    }
+  },
+  "partial": false,
+  "error": null,
+  "warnings": [],
+  "meta": {
+    "model": "gemini-3.8-flash",
+    "temperature": 0.0,
+    "promptVersion": "4",
+    "mode": "split",
+    "durationMs": 14894,
+    "llmCalls": 5,
+    "truncated": 0,
+    "repaired": 0,
+    "ungroundedDropped": 0,
+    "fuzzyMatched": 1,
+    "extractCached": false,
+    "scoreCached": false
+  }
+}

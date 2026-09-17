@@ -1,0 +1,13 @@
+{
+ "kind": "group:risk",
+ "model": "gemini-3.8-flash",
+ "prompt_head": "You score a draft PROPOSAL on 1 review criterion. Group id: risk. Other reviewer",
+ "truncated": false,
+ "usage": {
+  "prompt": 2170,
+  "output": 239,
+  "thinking": 0,
+  "cached": 0
+ },
+ "text": "{\n  \"findings\": [],\n  \"scores\": [\n    {\n      \"id\": \"risk_transparency\",\n      \"label\": \"Risk/Assumptions Transparency\",\n      \"score\": 3,\n      \"strengths\": \"The proposal transparently articulates core operational assumptions regarding database access, onboarding points-of-contact, and alert threshold fine-tuning.\",\n      \"weaknesses\": \"In §4, risks and assumptions are listed with potential schedule impacts, but no specific mitigation plans or contingency measures are provided if onboarding or schema delays occur.\",\n      \"citations\": [\n        {\n          \"source\": \"proposal\",\n          \"section\": \"§4\",\n          \"quote\": \"delays here would shift the Week 13–24 plan proportionally.\"\n        },\n        {\n          \"source\": \"rfp\",\n          \"section\": \"r7\",\n          \"quote\": \"Clear documentation of any assumptions, limitations, or risks, since inventory decisions will be made based on this system.\"\n        }\n      ],\n      \"note\": null\n    }\n  ]\n}"
+}
