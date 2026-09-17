@@ -1,58 +1,52 @@
+# Proposal Scorer v0 (BACKEND.md §4). Run from this folder: `docker compose up -d --build`.
+# Only nginx gets a host port; browser → nginx:80 → /api/* backend, /* frontend.
 services:
-  api:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - HF_HOME=/hf_cache                 # cache CLINC downloads in a volume
-    volumes:
-      - .:/app                            # hot reload
-      - /app/.venv                        # preserve the container's Linux venv (critical)
-      - hf_cache:/hf_cache                # dataset cache persists across restarts
-    command: uvicorn router.main:app --host 0.0.0.0 --port 8000 --reload
-    depends_on:
-      db:
-        condition: service_healthy
-      ollama:
-        condition: service_started
-
   ollama:
     image: ollama/ollama:latest
+    volumes:
+      - ollama_models:/root/.ollama
+    # Published so `uv run` on the host can reach it too; drop for prod.
     ports:
       - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-
-  db: 
-    image: postgres:17-alpine
-    environment:
-      POSTGRES_PASSWORD: dev
-      POSTGRES_DB: router
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 2s
-      timeout: 3s
-      retries: 20
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  n8n:
-    image: n8nio/n8n 
-    ports:
-      - "5678:5678"
-    environment:
-      - N8N_SECURE_COOKIE=value
-      - N8N_RUNNERS_ENABLED=true
+  backend:
+    build: .
+    env_file:
+      - path: .env
+        required: false            # defaults in config.py apply until you `cp .env.example .env`
+    depends_on:
+      ollama:
+        condition: service_started
+    # no host port — nginx reaches it on the network as backend:8000
+    expose:
+      - "8000"
     volumes:
-      - n8n_data:/home/node/.n8n
-      - ./fixtures:/data 
+      - ./data:/app/data             # extraction cache + regression outputs persist
+      - ../sample_data:/sample_data:ro   # the 6 sponsor .md files, for tests/regression.py
 
+  frontend:
+    # Placeholder so nginx has something on "/". The real app is ../frontend; give it a
+    # Dockerfile that serves on :3000 and point `build` there.
+    build: ./frontend-placeholder
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+      - frontend
 
 volumes:
-  pgdata:
-  n8n_data:
-  ollama_data:
-  hf_cache:
+  ollama_models:
