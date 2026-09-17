@@ -3,9 +3,8 @@ from fastapi import FastAPI
 from fastapi.routing import APIRoute
 from pydantic import BaseModel
 
+from router.proposal_api import configure_proposal_api
 from router.categories import Category
-from router.data import load_tasks
-from router.llm import classify
 from router.schema import CategoryStat, Classification, RunSummary, TaskResult
 
 
@@ -14,6 +13,7 @@ def unique_id(route: APIRoute) -> str:
 
 
 app = FastAPI(title="router", generate_unique_id_function=unique_id)
+configure_proposal_api(app)
 
 
 class ClassifyBody(BaseModel):
@@ -23,6 +23,8 @@ class ClassifyBody(BaseModel):
 @app.post("/classify", response_model=Classification, tags=["classify"])
 def classify_one(body: ClassifyBody) -> Classification:
     """Classify a single task. The frontend calls this; response is fully typed."""
+    from router.llm import classify
+
     return classify(body.task)
 
 
@@ -34,6 +36,9 @@ def run(n: int = 50, include_other: bool = False) -> RunSummary:
         We using this endpoint to try to evaluate if the system prompt 
         is efficient or not
     """
+    from router.data import load_tasks
+    from router.llm import classify
+
     tasks = load_tasks(n, include_other=include_other)
     results: list[TaskResult] = []
     correct = 0

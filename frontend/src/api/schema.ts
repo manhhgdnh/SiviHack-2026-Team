@@ -42,6 +42,10 @@ export interface Requirement {
   answeredAt: Citation | null
   source: Citation
   note: string
+  severity?: "low" | "medium" | "high" | "critical"
+  mandatory?: boolean
+  suggestedFix?: string | null
+  anchor_id?: string
 }
 
 export type Severity = "must" | "should" | "optional"
@@ -60,6 +64,7 @@ export interface Issue {
   against: Citation | null
   whyItMatters: string
   suggestedFix: string
+  fixKind?: "action"
 }
 
 export interface Criterion {
@@ -84,6 +89,14 @@ export interface CriterionScore {
 export type Verdict = "ready" | "fix" | "not-ready"
 
 export interface Review {
+  schema_version?: "1.0"
+  readiness?: "ready" | "minor_revision" | "major_revision" | "not_ready"
+  readiness_reasons?: string[]
+  overall_100?: number
+  counters?: Record<string, number>
+  top_actions?: string[]
+  notifications?: { type: "contradiction"; requirement_id: string; severity: string; message: string; anchor_id: string }[]
+
   verdict: Verdict
   /** Weighted mean of enabled criteria, 1–5, one decimal. */
   overall: number

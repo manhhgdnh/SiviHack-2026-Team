@@ -1,0 +1,31 @@
+{
+  "mode": "not_run",
+  "cases": [
+    {
+      "sample": "response_1_weak",
+      "status": "not_run",
+      "reason": "Set GEMINI_API_KEY and GEMINI_MODEL and pass --live; no model score was generated."
+    },
+    {
+      "sample": "response_2_medium",
+      "status": "not_run",
+      "reason": "Set GEMINI_API_KEY and GEMINI_MODEL and pass --live; no model score was generated."
+    },
+    {
+      "sample": "response_3_strong",
+      "status": "not_run",
+      "reason": "Set GEMINI_API_KEY and GEMINI_MODEL and pass --live; no model score was generated."
+    },
+    {
+      "sample": "response_4_overpromise",
+      "status": "not_run",
+      "reason": "Set GEMINI_API_KEY and GEMINI_MODEL and pass --live; no model score was generated."
+    },
+    {
+      "sample": "synthetic_unseen",
+      "status": "not_run",
+      "reason": "Set GEMINI_API_KEY and GEMINI_MODEL and pass --live; no model score was generated."
+    }
+  ],
+  "note": "Heuristic acceptance checks, not sponsor-assigned ground truth; human evidence/coverage review remains required."
+}

@@ -1,0 +1,706 @@
+{
+  "$defs": {
+    "Citation": {
+      "additionalProperties": false,
+      "properties": {
+        "witness": {
+          "enum": [
+            "R",
+            "P"
+          ],
+          "title": "Witness",
+          "type": "string"
+        },
+        "section": {
+          "title": "Section",
+          "type": "string"
+        },
+        "from": {
+          "minimum": 1,
+          "title": "From",
+          "type": "integer"
+        },
+        "to": {
+          "minimum": 1,
+          "title": "To",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "witness",
+        "section",
+        "from",
+        "to"
+      ],
+      "title": "Citation",
+      "type": "object"
+    },
+    "CriterionEvaluation": {
+      "additionalProperties": false,
+      "properties": {
+        "criterion": {
+          "enum": [
+            "problem_understanding",
+            "scope_deliverables_clarity",
+            "pricing_clarity",
+            "timeline_clarity",
+            "completeness_vs_rfp",
+            "tone_persuasiveness",
+            "risk_assumptions_transparency"
+          ],
+          "title": "Criterion",
+          "type": "string"
+        },
+        "score": {
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Score",
+          "type": "integer"
+        },
+        "comment": {
+          "minLength": 1,
+          "title": "Comment",
+          "type": "string"
+        },
+        "strengths": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Strengths",
+          "type": "array"
+        },
+        "weaknesses": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Weaknesses",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "minItems": 1,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "suggested_fix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suggested Fix"
+        }
+      },
+      "required": [
+        "criterion",
+        "score",
+        "comment",
+        "strengths",
+        "weaknesses",
+        "evidence"
+      ],
+      "title": "CriterionEvaluation",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "enum": [
+            "rfp",
+            "proposal"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "section": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Section"
+        },
+        "quote": {
+          "minLength": 1,
+          "title": "Quote",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "section",
+        "quote"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "Notification": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "const": "contradiction",
+          "default": "contradiction",
+          "title": "Type",
+          "type": "string"
+        },
+        "requirement_id": {
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "anchor_id": {
+          "title": "Anchor Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "severity",
+        "message",
+        "anchor_id"
+      ],
+      "title": "Notification",
+      "type": "object"
+    },
+    "ProposalReview": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement_assessments": {
+          "items": {
+            "$ref": "#/$defs/RequirementAssessment"
+          },
+          "title": "Requirement Assessments",
+          "type": "array"
+        },
+        "criteria": {
+          "items": {
+            "$ref": "#/$defs/CriterionEvaluation"
+          },
+          "maxItems": 7,
+          "minItems": 7,
+          "title": "Criteria",
+          "type": "array"
+        },
+        "risks": {
+          "items": {
+            "$ref": "#/$defs/RiskFinding"
+          },
+          "title": "Risks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "requirement_assessments",
+        "criteria",
+        "risks"
+      ],
+      "title": "ProposalReview",
+      "type": "object"
+    },
+    "RequirementAssessment": {
+      "additionalProperties": false,
+      "properties": {
+        "requirement_id": {
+          "minLength": 1,
+          "title": "Requirement Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "satisfied",
+            "partial_or_unclear",
+            "contradicted",
+            "not_found"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "rfp_evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "proposal_evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Proposal Evidence",
+          "type": "array"
+        },
+        "suggested_fix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Suggested Fix"
+        }
+      },
+      "required": [
+        "requirement_id",
+        "status",
+        "severity",
+        "explanation",
+        "rfp_evidence",
+        "proposal_evidence",
+        "suggested_fix"
+      ],
+      "title": "RequirementAssessment",
+      "type": "object"
+    },
+    "RiskFinding": {
+      "additionalProperties": false,
+      "properties": {
+        "criterion": {
+          "enum": [
+            "problem_understanding",
+            "scope_deliverables_clarity",
+            "pricing_clarity",
+            "timeline_clarity",
+            "completeness_vs_rfp",
+            "tone_persuasiveness",
+            "risk_assumptions_transparency"
+          ],
+          "title": "Criterion",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "explanation": {
+          "minLength": 1,
+          "title": "Explanation",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "minItems": 1,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "suggested_fix": {
+          "minLength": 1,
+          "title": "Suggested Fix",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criterion",
+        "severity",
+        "explanation",
+        "evidence",
+        "suggested_fix"
+      ],
+      "title": "RiskFinding",
+      "type": "object"
+    },
+    "UICriterion": {
+      "additionalProperties": false,
+      "properties": {
+        "criterionId": {
+          "title": "Criterionid",
+          "type": "string"
+        },
+        "score": {
+          "title": "Score",
+          "type": "integer"
+        },
+        "strength": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Strength"
+        },
+        "weakness": {
+          "title": "Weakness",
+          "type": "string"
+        },
+        "citations": {
+          "items": {
+            "$ref": "#/$defs/Citation"
+          },
+          "title": "Citations",
+          "type": "array"
+        },
+        "comment": {
+          "title": "Comment",
+          "type": "string"
+        }
+      },
+      "required": [
+        "criterionId",
+        "score",
+        "strength",
+        "weakness",
+        "citations",
+        "comment"
+      ],
+      "title": "UICriterion",
+      "type": "object"
+    },
+    "UIIssue": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "ref": {
+          "title": "Ref",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "must",
+            "should",
+            "optional"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "criterionId": {
+          "title": "Criterionid",
+          "type": "string"
+        },
+        "lemma": {
+          "title": "Lemma",
+          "type": "string"
+        },
+        "quoted": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Quoted"
+        },
+        "location": {
+          "$ref": "#/$defs/Citation"
+        },
+        "against": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "whyItMatters": {
+          "title": "Whyitmatters",
+          "type": "string"
+        },
+        "suggestedFix": {
+          "title": "Suggestedfix",
+          "type": "string"
+        },
+        "fixKind": {
+          "const": "action",
+          "default": "action",
+          "title": "Fixkind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "ref",
+        "severity",
+        "criterionId",
+        "lemma",
+        "quoted",
+        "location",
+        "against",
+        "whyItMatters",
+        "suggestedFix"
+      ],
+      "title": "UIIssue",
+      "type": "object"
+    },
+    "UIRequirement": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "ref": {
+          "title": "Ref",
+          "type": "string"
+        },
+        "section": {
+          "title": "Section",
+          "type": "string"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "addressed",
+            "partial",
+            "missing",
+            "contradicted"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "answeredAt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Citation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "$ref": "#/$defs/Citation"
+        },
+        "note": {
+          "title": "Note",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "mandatory": {
+          "title": "Mandatory",
+          "type": "boolean"
+        },
+        "suggestedFix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Suggestedfix"
+        },
+        "anchor_id": {
+          "title": "Anchor Id",
+          "type": "string"
+        },
+        "rfp_evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "proposal_evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Proposal Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "ref",
+        "section",
+        "text",
+        "status",
+        "answeredAt",
+        "source",
+        "note",
+        "severity",
+        "mandatory",
+        "suggestedFix",
+        "anchor_id",
+        "rfp_evidence",
+        "proposal_evidence"
+      ],
+      "title": "UIRequirement",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "ready",
+        "fix",
+        "not-ready"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    },
+    "overall": {
+      "title": "Overall",
+      "type": "number"
+    },
+    "criteria": {
+      "items": {
+        "$ref": "#/$defs/UICriterion"
+      },
+      "title": "Criteria",
+      "type": "array"
+    },
+    "requirements": {
+      "items": {
+        "$ref": "#/$defs/UIRequirement"
+      },
+      "title": "Requirements",
+      "type": "array"
+    },
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/UIIssue"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "counters": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Counters",
+      "type": "object"
+    },
+    "notifications": {
+      "items": {
+        "$ref": "#/$defs/Notification"
+      },
+      "title": "Notifications",
+      "type": "array"
+    },
+    "overall_100": {
+      "title": "Overall 100",
+      "type": "number"
+    },
+    "readiness": {
+      "enum": [
+        "ready",
+        "minor_revision",
+        "major_revision",
+        "not_ready"
+      ],
+      "title": "Readiness",
+      "type": "string"
+    },
+    "readiness_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Readiness Reasons",
+      "type": "array"
+    },
+    "top_actions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Top Actions",
+      "type": "array"
+    },
+    "review": {
+      "$ref": "#/$defs/ProposalReview"
+    },
+    "metadata": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      },
+      "title": "Metadata",
+      "type": "object"
+    }
+  },
+  "required": [
+    "verdict",
+    "overall",
+    "criteria",
+    "requirements",
+    "issues",
+    "counters",
+    "notifications",
+    "overall_100",
+    "readiness",
+    "readiness_reasons",
+    "top_actions",
+    "review",
+    "metadata"
+  ],
+  "title": "ReviewResponse",
+  "type": "object"
+}

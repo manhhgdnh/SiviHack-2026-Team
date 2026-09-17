@@ -1,0 +1,5 @@
+{
+  "rfp": "# Synthetic test only — Booking Service\n\n## Hosting\nPatient appointment records must remain in the EU.\n\n## Notifications\nSend confirmation emails within five minutes of a booking.\n\n## Support\nState support response times after launch.\n",
+  "proposal": "# Synthetic test only — Draft\n\n## Hosting\nAll appointment records will be stored exclusively in the United States.\n\n## Notifications\nConfirmation emails will be sent within one minute of a booking.\n\n## Support\nSupport will be available after launch; response targets are to be agreed.\n",
+  "criteria": null
+}

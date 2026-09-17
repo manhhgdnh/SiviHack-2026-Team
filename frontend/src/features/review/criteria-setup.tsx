@@ -109,12 +109,11 @@ export function CriteriaSetup({
           )}
         >
           {suggesting && <Loader2 className="size-3.5 animate-spin" />}
-          Suggest weights from the RFP
+          Reset to equal weights
         </button>
         {suggestions && (
           <p className="text-ink-2 max-w-prose text-[0.78rem]">
-            Read off the RFP&rsquo;s own evaluation section. Each reason below
-            cites the passage it came from.
+            Application defaults, not inferred client priorities. Adjust weights before reviewing.
           </p>
         )}
       </div>
@@ -260,12 +259,13 @@ export function CriteriaSetup({
       ) : (
         <button
           type="button"
-          disabled={disabled}
+          disabled
           onClick={() => setAdding(true)}
+          title="This MVP evaluates the seven FPT criteria; custom criteria are not supported."
           className="editorial text-ink-2 hover:text-ink mt-4 inline-flex cursor-pointer items-center gap-2 transition-colors disabled:opacity-50"
         >
           <Plus className="size-3.5" />
-          Add a custom criterion
+          Custom criteria (not available in this MVP)
         </button>
       )}
     </div>

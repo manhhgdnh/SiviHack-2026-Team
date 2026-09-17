@@ -26,14 +26,14 @@ import { Slider } from "@/components/ui/slider"
 import { redistribute } from "@/lib/score"
 
 /* --------------------------------------------------------------------------
-   Severity is set in type, not in colour. Position, weight and case carry the
-   four states; the editor's crimson is spent once, on a contradiction.
+   Requirement status uses color and text together; severity remains a separate
+   field so a color alone never carries the review judgment.
 -------------------------------------------------------------------------- */
 
 const STATUS_STYLE: Record<RequirementStatus, string> = {
-  addressed: "text-ink-3 font-medium",
-  partial: "text-ink-2 font-semibold",
-  missing: "text-ink font-bold",
+  addressed: "text-green-700 font-medium",
+  partial: "text-amber-700 font-semibold",
+  missing: "text-gray-600 font-medium",
   contradicted: "text-cloth-stop font-bold",
 }
 
@@ -188,14 +188,16 @@ const STATUS_ORDER: RequirementStatus[] = [
 
 export function RequirementsPanel({
   requirements,
+  counters,
 }: {
   requirements: Requirement[]
+  counters?: Record<string, number>
 }) {
   const [filter, setFilter] = useState<RequirementStatus | "all">("all")
 
   const counts = STATUS_ORDER.map((status) => ({
     status,
-    n: requirements.filter((r) => r.status === status).length,
+    n: counters?.[({addressed: "satisfied", partial: "partial_or_unclear", missing: "not_found", contradicted: "contradicted"})[status]] ?? requirements.filter((r) => r.status === status).length,
   }))
 
   const shown =
@@ -238,7 +240,7 @@ export function RequirementsPanel({
 
       <ul className="border-rule border-t">
         {shown.map((req) => {
-          const id = `e-req-${req.ref}`
+          const id = req.anchor_id ?? `e-req-${req.ref}`
           return (
             <li
               key={req.id}
@@ -258,6 +260,7 @@ export function RequirementsPanel({
                 <p className="text-ink-2 mt-1.5 max-w-[68ch] text-[0.9rem] leading-relaxed">
                   {req.note}
                 </p>
+                {req.suggestedFix && <p className="mt-2 text-sm"><strong>Suggested action: </strong>{req.suggestedFix}</p>}
 
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
                   <CitationRef
@@ -421,7 +424,7 @@ function IssueEntry({
 
             <div className="border-rule bg-paper-inset mt-3 border">
               <div className="border-rule-hair flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 border-b px-3 py-1.5">
-                <span className="editorial text-ink-2">Suggested fix</span>
+                <span className="editorial text-ink-2">{issue.fixKind === "action" ? "Suggested action — human confirmation required" : "Suggested fix"}</span>
                 <CopyFix text={issue.suggestedFix} />
               </div>
               <p className="text-ink px-3 py-2.5 font-serif text-[0.97rem] leading-relaxed whitespace-pre-wrap">
@@ -432,7 +435,7 @@ function IssueEntry({
             <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
               {/* These two change the draft. */}
               <span className="flex items-center gap-x-4 whitespace-nowrap">
-              {!applied && (
+              {!applied && issue.fixKind !== "action" && (
                 <button
                   type="button"
                   onClick={() => {
@@ -457,7 +460,7 @@ function IssueEntry({
                 </button>
               )}
 
-              {applied ? (
+              {issue.fixKind !== "action" && (applied ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -481,7 +484,7 @@ function IssueEntry({
                   <FilePlus2 className="size-3.5" />
                   Apply to draft
                 </button>
-              )}
+              ))}
 
               </span>
 

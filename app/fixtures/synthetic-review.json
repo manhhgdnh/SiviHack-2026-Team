@@ -1,0 +1,488 @@
+{
+  "schema_version": "1.0",
+  "verdict": "not-ready",
+  "overall": 4.0,
+  "criteria": [
+    {
+      "criterionId": "c-problem",
+      "score": 4,
+      "strength": "A concrete notification target is stated.",
+      "weakness": "Synthetic transport fixture; this score is not a model evaluation.",
+      "citations": [
+        {
+          "witness": "P",
+          "section": "Notifications",
+          "from": 7,
+          "to": 7
+        }
+      ],
+      "comment": "Synthetic transport fixture; this score is not a model evaluation."
+    },
+    {
+      "criterionId": "c-scope",
+      "score": 4,
+      "strength": "A concrete notification target is stated.",
+      "weakness": "Synthetic transport fixture; this score is not a model evaluation.",
+      "citations": [
+        {
+          "witness": "P",
+          "section": "Notifications",
+          "from": 7,
+          "to": 7
+        }
+      ],
+      "comment": "Synthetic transport fixture; this score is not a model evaluation."
+    },
+    {
+      "criterionId": "c-pricing",
+      "score": 4,
+      "strength": "A concrete notification target is stated.",
+      "weakness": "Synthetic transport fixture; this score is not a model evaluation.",
+      "citations": [
+        {
+          "witness": "P",
+          "section": "Notifications",
+          "from": 7,
+          "to": 7
+        }
+      ],
+      "comment": "Synthetic transport fixture; this score is not a model evaluation."
+    },
+    {
+      "criterionId": "c-timeline",
+      "score": 4,
+      "strength": "A concrete notification target is stated.",
+      "weakness": "Synthetic transport fixture; this score is not a model evaluation.",
+      "citations": [
+        {
+          "witness": "P",
+          "section": "Notifications",
+          "from": 7,
+          "to": 7
+        }
+      ],
+      "comment": "Synthetic transport fixture; this score is not a model evaluation."
+    },
+    {
+      "criterionId": "c-completeness",
+      "score": 4,
+      "strength": "A concrete notification target is stated.",
+      "weakness": "Synthetic transport fixture; this score is not a model evaluation.",
+      "citations": [
+        {
+          "witness": "P",
+          "section": "Notifications",
+          "from": 7,
+          "to": 7
+        }
+      ],
+      "comment": "Synthetic transport fixture; this score is not a model evaluation."
+    },
+    {
+      "criterionId": "c-tone",
+      "score": 4,
+      "strength": "A concrete notification target is stated.",
+      "weakness": "Synthetic transport fixture; this score is not a model evaluation.",
+      "citations": [
+        {
+          "witness": "P",
+          "section": "Notifications",
+          "from": 7,
+          "to": 7
+        }
+      ],
+      "comment": "Synthetic transport fixture; this score is not a model evaluation."
+    },
+    {
+      "criterionId": "c-risk",
+      "score": 4,
+      "strength": "A concrete notification target is stated.",
+      "weakness": "Synthetic transport fixture; this score is not a model evaluation.",
+      "citations": [
+        {
+          "witness": "P",
+          "section": "Notifications",
+          "from": 7,
+          "to": 7
+        }
+      ],
+      "comment": "Synthetic transport fixture; this score is not a model evaluation."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "RFP-001",
+      "ref": "1",
+      "section": "Hosting",
+      "text": "Patient appointment records must remain in the EU.",
+      "status": "contradicted",
+      "answeredAt": {
+        "witness": "P",
+        "section": "Hosting",
+        "from": 4,
+        "to": 4
+      },
+      "source": {
+        "witness": "R",
+        "section": "Hosting",
+        "from": 4,
+        "to": 4
+      },
+      "note": "US-only storage conflicts with the EU restriction.",
+      "severity": "critical",
+      "mandatory": true,
+      "suggestedFix": "Confirm an EU hosting design in Hosting before making a commitment.",
+      "anchor_id": "requirement-RFP-001",
+      "rfp_evidence": {
+        "source": "rfp",
+        "section": "Hosting",
+        "quote": "Patient appointment records must remain in the EU."
+      },
+      "proposal_evidence": [
+        {
+          "source": "proposal",
+          "section": "Hosting",
+          "quote": "All appointment records will be stored exclusively in the United States."
+        }
+      ]
+    },
+    {
+      "id": "RFP-002",
+      "ref": "2",
+      "section": "Notifications",
+      "text": "Send confirmation emails within five minutes of a booking.",
+      "status": "addressed",
+      "answeredAt": {
+        "witness": "P",
+        "section": "Notifications",
+        "from": 7,
+        "to": 7
+      },
+      "source": {
+        "witness": "R",
+        "section": "Notifications",
+        "from": 7,
+        "to": 7
+      },
+      "note": "One minute meets the five-minute limit.",
+      "severity": "low",
+      "mandatory": false,
+      "suggestedFix": null,
+      "anchor_id": "requirement-RFP-002",
+      "rfp_evidence": {
+        "source": "rfp",
+        "section": "Notifications",
+        "quote": "Send confirmation emails within five minutes of a booking."
+      },
+      "proposal_evidence": [
+        {
+          "source": "proposal",
+          "section": "Notifications",
+          "quote": "Confirmation emails will be sent within one minute of a booking."
+        }
+      ]
+    },
+    {
+      "id": "RFP-003",
+      "ref": "3",
+      "section": "Support",
+      "text": "State support response times after launch.",
+      "status": "partial",
+      "answeredAt": {
+        "witness": "P",
+        "section": "Support",
+        "from": 10,
+        "to": 10
+      },
+      "source": {
+        "witness": "R",
+        "section": "Support",
+        "from": 10,
+        "to": 10
+      },
+      "note": "Response times are deferred rather than specified.",
+      "severity": "medium",
+      "mandatory": false,
+      "suggestedFix": "Add approved response targets in Support.",
+      "anchor_id": "requirement-RFP-003",
+      "rfp_evidence": {
+        "source": "rfp",
+        "section": "Support",
+        "quote": "State support response times after launch."
+      },
+      "proposal_evidence": [
+        {
+          "source": "proposal",
+          "section": "Support",
+          "quote": "Support will be available after launch; response targets are to be agreed."
+        }
+      ]
+    }
+  ],
+  "issues": [
+    {
+      "id": "issue-RFP-001",
+      "ref": "1",
+      "severity": "must",
+      "criterionId": "c-completeness",
+      "lemma": "Patient appointment records must remain in the EU.",
+      "quoted": "All appointment records will be stored exclusively in the United States.",
+      "location": {
+        "witness": "P",
+        "section": "Hosting",
+        "from": 4,
+        "to": 4
+      },
+      "against": {
+        "witness": "R",
+        "section": "Hosting",
+        "from": 4,
+        "to": 4
+      },
+      "whyItMatters": "US-only storage conflicts with the EU restriction.",
+      "suggestedFix": "Confirm an EU hosting design in Hosting before making a commitment.",
+      "fixKind": "action"
+    },
+    {
+      "id": "issue-RFP-003",
+      "ref": "2",
+      "severity": "should",
+      "criterionId": "c-completeness",
+      "lemma": "State support response times after launch.",
+      "quoted": "Support will be available after launch; response targets are to be agreed.",
+      "location": {
+        "witness": "P",
+        "section": "Support",
+        "from": 10,
+        "to": 10
+      },
+      "against": {
+        "witness": "R",
+        "section": "Support",
+        "from": 10,
+        "to": 10
+      },
+      "whyItMatters": "Response times are deferred rather than specified.",
+      "suggestedFix": "Add approved response targets in Support.",
+      "fixKind": "action"
+    }
+  ],
+  "counters": {
+    "satisfied": 1,
+    "partial_or_unclear": 1,
+    "contradicted": 1,
+    "not_found": 0
+  },
+  "notifications": [
+    {
+      "type": "contradiction",
+      "requirement_id": "RFP-001",
+      "severity": "critical",
+      "message": "US-only storage conflicts with the EU restriction.",
+      "anchor_id": "requirement-RFP-001"
+    }
+  ],
+  "overall_100": 80.0,
+  "readiness": "not_ready",
+  "readiness_reasons": [
+    "RFP-001: explicit binding constraint contradicted."
+  ],
+  "top_actions": [
+    "RFP-001: Confirm an EU hosting design in Hosting before making a commitment.",
+    "RFP-003: Add approved response targets in Support."
+  ],
+  "review": {
+    "requirement_assessments": [
+      {
+        "requirement_id": "RFP-001",
+        "status": "contradicted",
+        "severity": "critical",
+        "explanation": "US-only storage conflicts with the EU restriction.",
+        "rfp_evidence": {
+          "source": "rfp",
+          "section": "Hosting",
+          "quote": "Patient appointment records must remain in the EU."
+        },
+        "proposal_evidence": [
+          {
+            "source": "proposal",
+            "section": "Hosting",
+            "quote": "All appointment records will be stored exclusively in the United States."
+          }
+        ],
+        "suggested_fix": "Confirm an EU hosting design in Hosting before making a commitment."
+      },
+      {
+        "requirement_id": "RFP-002",
+        "status": "satisfied",
+        "severity": "low",
+        "explanation": "One minute meets the five-minute limit.",
+        "rfp_evidence": {
+          "source": "rfp",
+          "section": "Notifications",
+          "quote": "Send confirmation emails within five minutes of a booking."
+        },
+        "proposal_evidence": [
+          {
+            "source": "proposal",
+            "section": "Notifications",
+            "quote": "Confirmation emails will be sent within one minute of a booking."
+          }
+        ],
+        "suggested_fix": null
+      },
+      {
+        "requirement_id": "RFP-003",
+        "status": "partial_or_unclear",
+        "severity": "medium",
+        "explanation": "Response times are deferred rather than specified.",
+        "rfp_evidence": {
+          "source": "rfp",
+          "section": "Support",
+          "quote": "State support response times after launch."
+        },
+        "proposal_evidence": [
+          {
+            "source": "proposal",
+            "section": "Support",
+            "quote": "Support will be available after launch; response targets are to be agreed."
+          }
+        ],
+        "suggested_fix": "Add approved response targets in Support."
+      }
+    ],
+    "criteria": [
+      {
+        "criterion": "problem_understanding",
+        "score": 4,
+        "comment": "Synthetic transport fixture; this score is not a model evaluation.",
+        "strengths": [
+          "A concrete notification target is stated."
+        ],
+        "weaknesses": [],
+        "evidence": [
+          {
+            "source": "proposal",
+            "section": "Notifications",
+            "quote": "Confirmation emails will be sent within one minute of a booking."
+          }
+        ],
+        "suggested_fix": null
+      },
+      {
+        "criterion": "scope_deliverables_clarity",
+        "score": 4,
+        "comment": "Synthetic transport fixture; this score is not a model evaluation.",
+        "strengths": [
+          "A concrete notification target is stated."
+        ],
+        "weaknesses": [],
+        "evidence": [
+          {
+            "source": "proposal",
+            "section": "Notifications",
+            "quote": "Confirmation emails will be sent within one minute of a booking."
+          }
+        ],
+        "suggested_fix": null
+      },
+      {
+        "criterion": "pricing_clarity",
+        "score": 4,
+        "comment": "Synthetic transport fixture; this score is not a model evaluation.",
+        "strengths": [
+          "A concrete notification target is stated."
+        ],
+        "weaknesses": [],
+        "evidence": [
+          {
+            "source": "proposal",
+            "section": "Notifications",
+            "quote": "Confirmation emails will be sent within one minute of a booking."
+          }
+        ],
+        "suggested_fix": null
+      },
+      {
+        "criterion": "timeline_clarity",
+        "score": 4,
+        "comment": "Synthetic transport fixture; this score is not a model evaluation.",
+        "strengths": [
+          "A concrete notification target is stated."
+        ],
+        "weaknesses": [],
+        "evidence": [
+          {
+            "source": "proposal",
+            "section": "Notifications",
+            "quote": "Confirmation emails will be sent within one minute of a booking."
+          }
+        ],
+        "suggested_fix": null
+      },
+      {
+        "criterion": "completeness_vs_rfp",
+        "score": 4,
+        "comment": "Synthetic transport fixture; this score is not a model evaluation.",
+        "strengths": [
+          "A concrete notification target is stated."
+        ],
+        "weaknesses": [],
+        "evidence": [
+          {
+            "source": "proposal",
+            "section": "Notifications",
+            "quote": "Confirmation emails will be sent within one minute of a booking."
+          }
+        ],
+        "suggested_fix": null
+      },
+      {
+        "criterion": "tone_persuasiveness",
+        "score": 4,
+        "comment": "Synthetic transport fixture; this score is not a model evaluation.",
+        "strengths": [
+          "A concrete notification target is stated."
+        ],
+        "weaknesses": [],
+        "evidence": [
+          {
+            "source": "proposal",
+            "section": "Notifications",
+            "quote": "Confirmation emails will be sent within one minute of a booking."
+          }
+        ],
+        "suggested_fix": null
+      },
+      {
+        "criterion": "risk_assumptions_transparency",
+        "score": 4,
+        "comment": "Synthetic transport fixture; this score is not a model evaluation.",
+        "strengths": [
+          "A concrete notification target is stated."
+        ],
+        "weaknesses": [],
+        "evidence": [
+          {
+            "source": "proposal",
+            "section": "Notifications",
+            "quote": "Confirmation emails will be sent within one minute of a booking."
+          }
+        ],
+        "suggested_fix": null
+      }
+    ],
+    "risks": []
+  },
+  "metadata": {
+    "model": "synthetic-stub-not-gemini",
+    "prompt_version": "proposal-review-v1",
+    "elapsed_seconds": 0.0,
+    "rfp_sha256": "7b1a7ce247ec035f36bd52694883af33bd4ce9d1be059e805db98cb9dfb9186a",
+    "proposal_sha256": "92186c82523ba4bcb0a4664d262f65c1ac4001943cbf81fb46c5fe3fd6998cb3",
+    "score_scale": "weighted mean 1–5; overall_100 = unrounded mean × 20, not probability",
+    "weights_policy": "application settings; all seven criteria still evaluated",
+    "human_review_required": true,
+    "fixture_notice": "SYNTHETIC: human-authored provider stubs; not a Gemini evaluation or sponsor score."
+  }
+}

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { RUN_STEPS } from "@/api/client"
+import { FIXTURE_MODE, RUN_STEPS } from "@/api/client"
 
 /**
  * The run takes time and can fail, so it shows its work. Nothing here is a
@@ -13,8 +13,8 @@ export function RunTrace({ active }: { active: number }) {
         Collating the draft against the RFP
       </h2>
       <p className="text-ink-2 mt-1.5 text-[0.85rem]">
-        Findings arrive as each step completes. This usually takes under a
-        minute.
+        Results appear after both model calls and evidence validation complete.
+        Longer documents may take several minutes.
       </p>
 
       <ol className="border-rule mt-7 border-t">
@@ -74,7 +74,7 @@ export function RunTrace({ active }: { active: number }) {
       </ol>
 
       <p className="text-ink-3 mt-4 font-sans text-[0.72rem]">
-        Running on authored sample findings. No model is called in this build.
+        {FIXTURE_MODE ? "Demo fixture mode: authored sample findings; no model is called." : "Live Gemini review. Invalid or incomplete evidence is rejected."}
       </p>
     </div>
   )

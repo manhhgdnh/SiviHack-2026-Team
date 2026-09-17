@@ -5,7 +5,7 @@ import type { Criterion, Issue, Witness } from "@/api/schema"
 import { ReviewError, runReview, suggestWeights } from "@/api/client"
 import { RFP_TEXT, SAMPLES, type SampleId } from "@/api/fixtures/documents"
 import { BASE_CRITERIA } from "@/api/fixtures/reviews"
-import { rebalance, verdictFor, weightedScore } from "@/lib/score"
+import { rebalance } from "@/lib/score"
 import { CollationProvider } from "@/components/apparatus/collation"
 
 import type { IssueVerdict } from "@/features/review/apparatus"
@@ -78,6 +78,7 @@ export default function App() {
    * that a later apply would have shifted.
    */
   const applyFix = (issue: Issue) => {
+    if (issue.fixKind === "action") return
     const lines = proposal.split("\n")
     const at = Math.min(issue.location.to, lines.length)
     setProposal(
@@ -97,8 +98,8 @@ export default function App() {
     })
   }
 
-  const score = review.data ? weightedScore(criteria, review.data.criteria) : 0
-  const verdict = verdictFor(score)
+  const score = review.data?.overall ?? 0
+  const verdict = review.data?.verdict ?? "not-ready"
 
   const errorMessage =
     review.error instanceof ReviewError
@@ -115,13 +116,12 @@ export default function App() {
   }
 
   // Success.
-  if (review.data && !editing) {
+  if (review.data && !editing && !review.error) {
     return (
       <CollationProvider>
         <ReviewView
           review={review.data}
           criteria={criteria}
-          onCriteria={setCriteria}
           witnesses={witnesses}
           score={score}
           verdict={verdict}

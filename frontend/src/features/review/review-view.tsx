@@ -107,7 +107,7 @@ export function ReviewView({
 }: {
   review: Review
   criteria: Criterion[]
-  onCriteria: (next: Criterion[]) => void
+  onCriteria?: (next: Criterion[]) => void
   witnesses: { R: Witness; P: Witness }
   score: number
   verdict: Verdict
@@ -178,6 +178,20 @@ export function ReviewView({
         </div>
       )}
 
+      {review.notifications && review.notifications.length > 0 && (
+        <div role="alert" className="border-b border-red-400 bg-red-50 px-5 py-3 text-red-900">
+          <strong>{review.notifications.length} explicit RFP contradiction(s)</strong>
+          {review.notifications.map((item) => (
+            <button key={item.requirement_id} type="button" className="ml-4 underline" onClick={() => {
+              setPanel("requirements")
+              requestAnimationFrame(() => document.getElementById(item.anchor_id)?.scrollIntoView({ block: "center" }))
+            }}>{item.requirement_id}: {item.message}</button>
+          ))}
+        </div>
+      )}
+      {review.readiness && <p className="border-b px-5 py-2 text-sm">
+        <strong>{review.readiness.replaceAll("_", " ")}</strong> — {review.readiness_reasons?.join(" ")}
+      </p>}
       <MustFixLede issues={review.issues} />
 
       <div className="grid min-h-0 flex-1 xl:grid-cols-[1.15fr_1fr_1fr]">
@@ -229,7 +243,7 @@ export function ReviewView({
               />
             )}
             {panel === "requirements" && (
-              <RequirementsPanel requirements={review.requirements} />
+              <RequirementsPanel requirements={review.requirements} counters={review.counters} />
             )}
             {panel === "criteria" && (
               <CriteriaPanel

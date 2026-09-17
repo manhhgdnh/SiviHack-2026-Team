@@ -21,3 +21,4 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/settings.json
+evaluation-output/
