@@ -1,0 +1,4 @@
+# Secrets: never commit an env file, anywhere in the repo
+.env
+.env.*
+!.env.example

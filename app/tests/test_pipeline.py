@@ -183,7 +183,7 @@ def _kind(prompt: str) -> str:
 class FakeProvider(LlmProvider):
     """Answers each prompt kind with canned JSON; can fail or truncate chosen kinds."""
 
-    name, model = "fake", "fake-model"  # not "remote" → merged unless LLM_SPLIT_CALLS=true
+    name, model = "fake", "fake-model"  # not "gemini" → merged unless LLM_SPLIT_CALLS=true
 
     def __init__(self, fail: set[str] | None = None, truncate: set[str] | None = None):
         self.fail, self.truncate = set(fail or ()), set(truncate or ())
@@ -236,7 +236,7 @@ def test_split_mode_follows_provider_unless_forced(monkeypatch: pytest.MonkeyPat
     p = FakeProvider()
     monkeypatch.setattr(config, "SPLIT_CALLS", "auto")
     assert pipeline.split_mode(p) is False
-    p.name = "remote"
+    p.name = "gemini"
     assert pipeline.split_mode(p) is True
     monkeypatch.setattr(config, "SPLIT_CALLS", "false")
     assert pipeline.split_mode(p) is False

@@ -14,6 +14,7 @@ dependencies = [
     # optional fuzzy fallback for grounding; grounding.py degrades gracefully without it
     "rapidfuzz>=3",
     "json-repair>=0.63.4",
+    "google-genai>=2.24.0",
 ]
 
 [build-system]

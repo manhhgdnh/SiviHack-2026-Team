@@ -15,26 +15,28 @@ def _flag(key: str, default: str) -> bool:
     return env(key, default).strip().lower() == "true"
 
 
-LLM_PROVIDER = env("LLM_PROVIDER", "ollama")
+# gemini = Google Gemini through the google-genai SDK (the default); ollama = local test model.
+LLM_PROVIDER = env("LLM_PROVIDER", "gemini")
 OLLAMA_URL = env("OLLAMA_URL", "http://ollama:11434").rstrip("/")
 OLLAMA_MODEL = env("OLLAMA_MODEL", "qwen2.5:7b")
 # Ollama defaults to a 4k context; the scoring prompt alone is ~4k tokens, so without this
 # the *input* gets truncated silently and the model answers a document it never saw.
 OLLAMA_NUM_CTX = int(env("OLLAMA_NUM_CTX", "16384"))
-REMOTE_BASE_URL = env("REMOTE_BASE_URL").rstrip("/")
-REMOTE_API_KEY = env("REMOTE_API_KEY")
-REMOTE_MODEL = env("REMOTE_MODEL")
+# The key is the only value without a default: paste it into .env as GEMINI_API_KEY.
+GEMINI_API_KEY = env("GEMINI_API_KEY")
+GEMINI_MODEL = env("GEMINI_MODEL", "gemini-3.8-flash")
 
 TEMPERATURE = float(env("LLM_TEMPERATURE", "0"))  # 0 for run-to-run consistency
-# Thinking tokens count against this on Gemini 2.5, so it must be generous or the JSON is
+# Thinking tokens count against this on Gemini, so it must be generous or the JSON is
 # cut before it starts. finish_reason is checked on every call regardless.
 MAX_OUTPUT_TOKENS = int(env("LLM_MAX_OUTPUT_TOKENS", "16384"))
-# reasoning_effort sent to OpenAI-compatible endpoints ("" = do not send). The schema and
-# the call boundaries already fix the reasoning order, so scoring can run on low effort;
-# coverage / constraint checks keep medium because they are where a wrong verdict hurts.
+# Gemini thinking level: minimal / low / medium / high ("" = the model's default; Gemini 2.5
+# models get the matching token budget instead). The schema and the call boundaries already
+# fix the reasoning order, so scoring can run on low; coverage / constraint checks keep
+# medium because they are where a wrong verdict hurts.
 REASONING_EFFORT = env("LLM_REASONING_EFFORT", "low")
 REASONING_EFFORT_COVERAGE = env("LLM_REASONING_EFFORT_COVERAGE", "medium")
-# auto = split scoring into parallel calls on the remote provider (latency ≈ 2a + max(2b)),
+# auto = split scoring into parallel calls on Gemini (latency ≈ 2a + max(2b)),
 # one merged call on local Ollama (one GPU serialises calls and re-evaluates the prompt each
 # time, so four calls are slower than one). true / false force it.
 SPLIT_CALLS = env("LLM_SPLIT_CALLS", "auto").strip().lower()

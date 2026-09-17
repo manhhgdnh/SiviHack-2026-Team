@@ -139,7 +139,7 @@ export interface ScoringResult {
     model?: string;
     temperature?: number;
     promptVersion?: string;
-    mode?: "split" | "merged"; // split = 2a + 3 parallel groups (remote); merged = one call (local)
+    mode?: "split" | "merged"; // split = 2a + 3 parallel groups (gemini); merged = one call (local)
     durationMs?: number;
     llmCalls?: number; // calls actually made (cache hits excluded)
     truncated?: number; // outputs cut at the token budget

@@ -4,7 +4,7 @@
 2. LLM call 1           requirements + constraints + suggested weights          → "requirements"
                         cache: hash(prompt version, model, rfp)
 3. signals      code    vague phrases, money / dates in pricing & timeline
-4. LLM call 2           split (remote):  2a coverage + violations               → "coverage"
+4. LLM call 2           split (gemini):  2a coverage + violations               → "coverage"
                                          2b three groups in parallel: findings → scores
                         merged (local):  one call, coverage → violations → findings → scores
                         cache: hash(prompt version, model, rfp, proposal[, group])
@@ -29,7 +29,7 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from app import config
+from app import config, usage
 from app.aggregate import (
     normalize_weights,
     prioritize_coverage,
@@ -86,7 +86,7 @@ type Event = tuple[str, EventPayload]
 def split_mode(provider: LlmProvider) -> bool:
     if config.SPLIT_CALLS in ("true", "false"):
         return config.SPLIT_CALLS == "true"
-    return provider.name == "remote"
+    return provider.name == "gemini"
 
 
 # ---- cache ---------------------------------------------------------------------------------
@@ -129,6 +129,7 @@ async def cached_call[T: BaseModel](
         )
         return model_cls.model_validate(cached["value"]), stats, True
     value, stats = await call_json(provider, prompt, model_cls, reasoning=reasoning)
+    usage.record(kind, provider.model, stats.tokens)
     _cache_put(
         key,
         {

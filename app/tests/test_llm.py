@@ -1,5 +1,5 @@
 """LLM layer: schema shaping, output budget + finish reason, json_repair salvage,
-retry-with-strict, provider feature fallback."""
+retry-with-strict, the Gemini wire shape."""
 
 import asyncio
 import json
@@ -7,15 +7,17 @@ from typing import Any
 
 import httpx
 import pytest
+from google.genai import errors
 from pydantic import ValidationError
 
 from app import config, llm
 from app.llm import (
     CallStats,
     Completion,
+    GeminiProvider,
     LlmProvider,
     OllamaProvider,
-    RemoteProvider,
+    TokenUsage,
     call_json,
     llm_schema,
     strict_schema,
@@ -152,92 +154,115 @@ def test_ollama_sends_schema_output_budget_and_context(monkeypatch: pytest.Monke
     }
 
 
-def _remote(monkeypatch: pytest.MonkeyPatch, handler) -> RemoteProvider:
+def _gemini(
+    monkeypatch: pytest.MonkeyPatch, handler, model: str = "gemini-pinned"
+) -> GeminiProvider:
     monkeypatch.setattr(llm, "_transport", httpx.MockTransport(handler))
-    monkeypatch.setattr(llm, "_remote_disabled", set())
-    monkeypatch.setattr(config, "REMOTE_BASE_URL", "http://llm.test/v1")
-    monkeypatch.setattr(config, "REMOTE_API_KEY", "k")
-    monkeypatch.setattr(config, "REMOTE_MODEL", "gemini-pinned")
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "k")
+    monkeypatch.setattr(config, "GEMINI_MODEL", model)
     monkeypatch.setattr(config, "MAX_OUTPUT_TOKENS", 12345)
-    return RemoteProvider()
+    return GeminiProvider()
 
 
-def _ok(finish: str = "stop") -> httpx.Response:
+def _answer(finish: str = "STOP") -> httpx.Response:
+    # a thought summary precedes the answer, as it will once include_thoughts is switched on
+    parts = [{"text": "weighing the requirements", "thought": True}, {"text": _TEXT}]
     return httpx.Response(
-        200, json={"choices": [{"message": {"content": _TEXT}, "finish_reason": finish}]}
+        200,
+        json={
+            "candidates": [{"content": {"role": "model", "parts": parts}, "finishReason": finish}],
+            "usageMetadata": {
+                "promptTokenCount": 100,
+                "candidatesTokenCount": 40,
+                "thoughtsTokenCount": 25,
+                "totalTokenCount": 165,
+            },
+        },
     )
 
 
-def test_remote_sends_budget_reasoning_and_json_schema(monkeypatch: pytest.MonkeyPatch):
+def test_gemini_sends_schema_budget_and_thinking_level(monkeypatch: pytest.MonkeyPatch):
+    seen: list[httpx.Request] = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen.append(req)
+        return _answer("MAX_TOKENS" if len(seen) == 2 else "STOP")
+
+    p = _gemini(monkeypatch, handler)
+    c = asyncio.run(p.complete("hi", llm_schema(RfpExtraction), 0.0, reasoning="low"))
+    assert c.truncated is False and json.loads(c.text) == EXTRACT  # the thought stays out
+    assert c.usage == TokenUsage(prompt=100, output=40, thinking=25, cached=0)
+    req = seen[0]
+    assert req.url.path.endswith("/models/gemini-pinned:generateContent")
+    assert req.headers["x-goog-api-key"] == "k"
+    body = json.loads(req.content)
+    assert body["contents"] == [{"role": "user", "parts": [{"text": "hi"}]}]
+    gen = body["generationConfig"]
+    assert gen["temperature"] == 0.0 and gen["maxOutputTokens"] == 12345
+    assert gen["responseMimeType"] == "application/json"
+    assert gen["thinkingConfig"] == {"thinking_level": "LOW"}
+    schema = gen["responseJsonSchema"]
+    assert schema["propertyOrdering"] == ["requirements", "constraints", "suggestedWeights"]
+    assert "default" not in json.dumps(schema) and "additionalProperties" not in schema
+
+    c2 = asyncio.run(p.complete("hi", llm_schema(RfpExtraction), 0.0, strict=True))
+    assert c2.truncated is True
+    gen2 = json.loads(seen[1].content)["generationConfig"]
+    assert gen2["responseJsonSchema"]["additionalProperties"] is False
+    assert "thinkingConfig" not in gen2
+
+
+def test_gemini_25_takes_a_thinking_budget(monkeypatch: pytest.MonkeyPatch):
     seen: list[dict[str, Any]] = []
 
     def handler(req: httpx.Request) -> httpx.Response:
         seen.append(json.loads(req.content))
-        return _ok("length" if len(seen) == 2 else "stop")
+        return _answer()
 
-    p = _remote(monkeypatch, handler)
-    c = asyncio.run(p.complete("hi", llm_schema(RfpExtraction), 0.0, reasoning="low"))
-    assert c.truncated is False and json.loads(c.text) == EXTRACT
-    body = seen[0]
-    assert body["model"] == "gemini-pinned" and body["temperature"] == 0.0
-    assert body["max_tokens"] == 12345 and body["reasoning_effort"] == "low"
-    rf = body["response_format"]
-    assert rf["type"] == "json_schema" and rf["json_schema"]["strict"] is False
-    assert "additionalProperties" not in rf["json_schema"]["schema"]
-
-    c2 = asyncio.run(p.complete("hi", llm_schema(RfpExtraction), 0.0, strict=True))
-    assert c2.truncated is True
-    rf2 = seen[1]["response_format"]["json_schema"]
-    assert rf2["strict"] is True and rf2["schema"]["additionalProperties"] is False
-    assert "reasoning_effort" not in seen[1]
+    p = _gemini(monkeypatch, handler, model="gemini-2.5-flash")
+    asyncio.run(p.complete("hi", llm_schema(RfpExtraction), 0.0, reasoning="medium"))
+    assert seen[0]["generationConfig"]["thinkingConfig"] == {"thinking_budget": 8192}
 
 
-def test_remote_disables_the_rejected_feature_and_remembers_it(monkeypatch: pytest.MonkeyPatch):
-    seen: list[dict[str, Any]] = []
+def test_gemini_retries_a_rate_limit_then_gives_up(monkeypatch: pytest.MonkeyPatch):
+    hits: list[int] = []
 
     def handler(req: httpx.Request) -> httpx.Response:
-        body = json.loads(req.content)
-        seen.append(body)
-        if "reasoning_effort" in body:
-            return httpx.Response(
-                400, json={"error": {"message": "Unknown parameter: reasoning_effort"}}
-            )
-        if body["response_format"]["type"] == "json_schema":
-            return httpx.Response(
-                400, json={"error": "response_format.json_schema is not supported"}
-            )
-        return _ok()
+        hits.append(1)
+        return (
+            httpx.Response(429, json={"error": {"message": "quota"}})
+            if len(hits) < 2
+            else _answer()
+        )
 
-    p = _remote(monkeypatch, handler)
-    c = asyncio.run(p.complete("hi", llm_schema(RfpExtraction), 0.0, reasoning="low"))
-    assert json.loads(c.text) == EXTRACT
-    assert [b["response_format"]["type"] for b in seen] == [
-        "json_schema",
-        "json_schema",
-        "json_object",
-    ]
-    assert "reasoning_effort" in seen[0] and "reasoning_effort" not in seen[1]
-    assert llm._remote_disabled == {"reasoning_effort", "json_schema"}
-    # remembered: the next call is right first time
-    asyncio.run(p.complete("again", llm_schema(RfpExtraction), 0.0, reasoning="low"))
-    assert len(seen) == 4
-    assert (
-        seen[-1]["response_format"] == {"type": "json_object"}
-        and "reasoning_effort" not in seen[-1]
+    monkeypatch.setattr(
+        llm,
+        "RETRY",
+        llm.gt.HttpRetryOptions(
+            attempts=2, initial_delay=0.001, max_delay=0.002, jitter=0.001, http_status_codes=[429]
+        ),
     )
+    p = _gemini(monkeypatch, handler)
+    c = asyncio.run(p.complete("hi", llm_schema(RfpExtraction), 0.0))
+    assert len(hits) == 2 and json.loads(c.text) == EXTRACT
+
+    hits.clear()
+    always = _gemini(monkeypatch, lambda req: (hits.append(1), httpx.Response(429, json={}))[1])
+    with pytest.raises(errors.APIError):
+        asyncio.run(always.complete("hi", llm_schema(RfpExtraction), 0.0))
+    assert len(hits) == 2  # bounded: the original request plus one retry
 
 
-def test_remote_gives_up_on_a_400_it_cannot_explain(monkeypatch: pytest.MonkeyPatch):
-    def handler(req: httpx.Request) -> httpx.Response:
-        return httpx.Response(400, json={"error": "prompt too long"})
-
-    p = _remote(monkeypatch, handler)
-    with pytest.raises(httpx.HTTPStatusError):
-        asyncio.run(p.complete("hi", llm_schema(RfpExtraction), 0.0, reasoning="low"))
-    assert llm._remote_disabled == {"reasoning_effort", "json_schema"}  # tried both, then raised
-
-
-def test_remote_requires_configuration(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(config, "REMOTE_BASE_URL", "")
+def test_gemini_requires_a_key(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(config, "GEMINI_API_KEY", "")
     with pytest.raises(RuntimeError):
-        asyncio.run(RemoteProvider().complete("hi", {}, 0.0))
+        asyncio.run(GeminiProvider().complete("hi", {}, 0.0))
+
+
+def test_gemini_reports_a_blocked_prompt(monkeypatch: pytest.MonkeyPatch):
+    def handler(req: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"promptFeedback": {"blockReason": "SAFETY"}})
+
+    p = _gemini(monkeypatch, handler)
+    with pytest.raises(RuntimeError, match="SAFETY"):
+        asyncio.run(p.complete("hi", llm_schema(RfpExtraction), 0.0))

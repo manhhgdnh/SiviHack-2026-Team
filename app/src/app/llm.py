@@ -1,22 +1,24 @@
 """LLM provider switch + validated JSON caller.
 
-Ollama in test mode, any OpenAI-compatible chat endpoint (Gemini compat, OpenRouter, Groq)
-in prod. Every call is structured: a JSON schema is *always* sent, the model name is pinned
-by env, temperature defaults to 0, the output budget is explicit and the finish reason is
-checked. `call_json` validates against the Pydantic model; a cut or malformed answer is
-first salvaged with json_repair, then retried once with the errors appended and the schema
-tightened to strict mode.
+Gemini through the google-genai SDK by default, Ollama for offline tests. Every call is
+structured: a JSON schema is *always* sent, the model name is pinned by env, temperature
+defaults to 0, the output budget is explicit and the finish reason is checked. `call_json`
+validates against the Pydantic model; a cut or malformed answer is first salvaged with
+json_repair, then retried once with the errors appended and the schema tightened to strict
+mode.
 """
 
 import copy
 import json
 import logging
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, NamedTuple
 
 import httpx
 import json_repair
+from google import genai
+from google.genai import types as gt
 from pydantic import BaseModel, ValidationError
 
 from app import config
@@ -30,15 +32,28 @@ type JsonSchema = dict[str, Any]
 
 # Tests inject an httpx.MockTransport here; None = real network.
 _transport: httpx.AsyncBaseTransport | None = None
-# Optional request features some OpenAI-compatible servers reject with HTTP 400. Remembered
-# per process so we pay the failed request once, not on every call.
-REMOTE_FEATURES = ("json_schema", "reasoning_effort")
-_remote_disabled: set[str] = set()
+
+
+@dataclass
+class TokenUsage:
+    """Token counts as the provider reports them; thinking is billed as output."""
+
+    prompt: int = 0
+    output: int = 0
+    thinking: int = 0
+    cached: int = 0  # part of `prompt` served from cache, billed at the cached rate
+
+    def add(self, other: "TokenUsage") -> None:
+        self.prompt += other.prompt
+        self.output += other.output
+        self.thinking += other.thinking
+        self.cached += other.cached
 
 
 class Completion(NamedTuple):
     text: str
     truncated: bool  # the server stopped at the output budget (finish_reason == length)
+    usage: TokenUsage | None = None
 
 
 @dataclass
@@ -46,11 +61,13 @@ class CallStats:
     attempts: int = 0
     truncated: int = 0
     repaired: int = 0
+    tokens: TokenUsage = field(default_factory=TokenUsage)
 
     def add(self, other: "CallStats") -> None:
         self.attempts += other.attempts
         self.truncated += other.truncated
         self.repaired += other.repaired
+        self.tokens.add(other.tokens)
 
 
 # ---- schema shaping ----------------------------------------------------------------------
@@ -97,10 +114,36 @@ def _tighten(node: Any) -> None:
 
 
 def strict_schema(schema: JsonSchema) -> JsonSchema:
-    """OpenAI strict-mode shape: every property required, no additional properties, no
+    """Strict shape for the retry: every property required, no additional properties, no
     numeric bounds or defaults (Pydantic still validates the bounds afterwards)."""
     out = copy.deepcopy(schema)
     _tighten(out)
+    return out
+
+
+def _for_gemini(node: Any) -> None:
+    if isinstance(node, dict):
+        node.pop("default", None)
+        if "$ref" in node:
+            for k in [k for k in node if not k.startswith("$")]:
+                del node[k]
+        props = node.get("properties")
+        if isinstance(props, dict):
+            node["propertyOrdering"] = list(props)
+        for v in node.values():
+            _for_gemini(v)
+    elif isinstance(node, list):
+        for v in node:
+            _for_gemini(v)
+
+
+def gemini_schema(schema: JsonSchema) -> JsonSchema:
+    """The schema as Gemini's JSON-schema subset takes it: no `default` (Pydantic applies
+    defaults on validation anyway), nothing but `$` keys beside a `$ref`, and every object
+    listing `propertyOrdering`, which is what keeps the answer in field order (findings
+    before scores)."""
+    out = copy.deepcopy(schema)
+    _for_gemini(out)
     return out
 
 
@@ -160,42 +203,37 @@ class OllamaProvider(LlmProvider):
             return Completion(data["response"], data.get("done_reason") == "length")
 
 
-class RemoteProvider(LlmProvider):
-    """OpenAI-compatible chat endpoint (Gemini OpenAI-compat / OpenRouter / Groq)."""
+# Gemini 2.5 models take a token budget rather than a level; these are the budgets Google's
+# OpenAI-compatible layer maps the same names to, so behaviour matches the previous provider.
+_THINKING_BUDGET = {"minimal": 1024, "low": 1024, "medium": 8192, "high": 24576}
 
-    name = "remote"
+# A 429 in the middle of a demo is the failure that matters, and a rejected request costs
+# no tokens: three bounded attempts with backoff, for rate limits and overload only.
+RETRY = gt.HttpRetryOptions(
+    attempts=3, initial_delay=2.0, max_delay=20.0, http_status_codes=[429, 503]
+)
+
+
+def _thinking(model: str, effort: str | None) -> gt.ThinkingConfig | None:
+    if not effort:
+        return None
+    if effort not in _THINKING_BUDGET:
+        raise ValueError(f"reasoning effort must be one of {list(_THINKING_BUDGET)}: {effort!r}")
+    if model.startswith("gemini-2.5"):
+        return gt.ThinkingConfig(thinking_budget=_THINKING_BUDGET[effort])
+    return gt.ThinkingConfig(thinking_level=gt.ThinkingLevel[effort.upper()])
+
+
+class GeminiProvider(LlmProvider):
+    """Google Gemini through the google-genai SDK. The schema goes as the response JSON
+    schema, the reasoning effort as the thinking level, and a cut answer is read off the
+    finish reason. Thought summaries are not requested yet (`include_thoughts`); when they
+    are, they arrive as parts flagged `thought` and stay out of the answer text below."""
+
+    name = "gemini"
 
     def __init__(self) -> None:
-        self.model = config.REMOTE_MODEL
-
-    def _body(
-        self,
-        prompt: str,
-        schema: JsonSchema,
-        temperature: float,
-        strict: bool,
-        reasoning: str | None,
-    ) -> dict[str, Any]:
-        body: dict[str, Any] = {
-            "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": temperature,
-            "max_tokens": config.MAX_OUTPUT_TOKENS,
-        }
-        if "json_schema" not in _remote_disabled:
-            body["response_format"] = {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": schema.get("title", "response"),
-                    "schema": strict_schema(schema) if strict else schema,
-                    "strict": strict,
-                },
-            }
-        else:
-            body["response_format"] = {"type": "json_object"}
-        if reasoning and "reasoning_effort" not in _remote_disabled:
-            body["reasoning_effort"] = reasoning
-        return body
+        self.model = config.GEMINI_MODEL
 
     async def complete(
         self,
@@ -205,45 +243,50 @@ class RemoteProvider(LlmProvider):
         strict: bool = False,
         reasoning: str | None = None,
     ) -> Completion:
-        if not config.REMOTE_BASE_URL or not config.REMOTE_API_KEY or not self.model:
-            raise RuntimeError(
-                "REMOTE_* env not configured (REMOTE_BASE_URL, REMOTE_API_KEY, REMOTE_MODEL)"
+        if not config.GEMINI_API_KEY:
+            raise RuntimeError("GEMINI_API_KEY is not set (put it in .env)")
+        cfg = gt.GenerateContentConfig(
+            temperature=temperature,
+            max_output_tokens=config.MAX_OUTPUT_TOKENS,
+            response_mime_type="application/json",
+            response_json_schema=gemini_schema(strict_schema(schema) if strict else schema),
+            thinking_config=_thinking(self.model, reasoning),
+        )
+        client = genai.Client(
+            api_key=config.GEMINI_API_KEY,
+            http_options=gt.HttpOptions(
+                timeout=180_000,
+                retry_options=RETRY,
+                async_client_args={"transport": _transport} if _transport else None,
+            ),
+        )
+        try:
+            r = await client.aio.models.generate_content(
+                model=self.model, contents=prompt, config=cfg
             )
-        headers = {"Authorization": f"Bearer {config.REMOTE_API_KEY}"}
-        url = f"{config.REMOTE_BASE_URL}/chat/completions"
-        async with _client(180) as c:
-            while True:
-                body = self._body(prompt, schema, temperature, strict, reasoning)
-                r = await c.post(url, json=body, headers=headers)
-                if r.status_code == 400 and self._disable_feature(body, r.text):
-                    continue  # one feature fewer; try again
-                r.raise_for_status()
-                choice = r.json()["choices"][0]
-                return Completion(
-                    choice["message"]["content"], choice.get("finish_reason") == "length"
-                )
-
-    @staticmethod
-    def _disable_feature(body: dict[str, Any], error_text: str) -> bool:
-        """On HTTP 400, switch off the optional feature the error names (or the first one
-        still on). Returns False when nothing is left to switch off."""
-        used = [
-            f
-            for f in REMOTE_FEATURES
-            if f not in _remote_disabled
-            and (f in body or body.get("response_format", {}).get("type") == f)
-        ]
-        if not used:
-            return False
-        low = error_text.lower()
-        culprit = next((f for f in used if f.replace("_", "") in low.replace("_", "")), used[0])
-        _remote_disabled.add(culprit)
-        log.warning("remote rejected %s (%s); disabled for this process", culprit, error_text[:200])
-        return True
+        finally:
+            await client.aio.aclose()
+        if not r.candidates:
+            raise RuntimeError(f"Gemini returned no answer: {r.prompt_feedback}")
+        cand = r.candidates[0]
+        parts = (cand.content.parts if cand.content else None) or []
+        text = "".join(p.text for p in parts if p.text and not p.thought)
+        u = r.usage_metadata
+        usage = (
+            TokenUsage(
+                prompt=u.prompt_token_count or 0,
+                output=u.candidates_token_count or 0,
+                thinking=u.thoughts_token_count or 0,
+                cached=u.cached_content_token_count or 0,
+            )
+            if u
+            else None
+        )
+        return Completion(text, cand.finish_reason == gt.FinishReason.MAX_TOKENS, usage)
 
 
 def get_provider() -> LlmProvider:
-    return RemoteProvider() if config.LLM_PROVIDER == "remote" else OllamaProvider()
+    return GeminiProvider() if config.LLM_PROVIDER == "gemini" else OllamaProvider()
 
 
 # ---- validated call ----------------------------------------------------------------------
@@ -299,6 +342,8 @@ async def call_json[T: BaseModel](
 
     stats.attempts = 1
     c = await provider.complete(prompt, schema, temp, reasoning=reasoning)
+    if c.usage:
+        stats.tokens.add(c.usage)
     value, err = _parse(c, model_cls, stats)
     if value is not None:
         return value, stats
@@ -312,6 +357,8 @@ async def call_json[T: BaseModel](
     note = TRUNCATED_NOTE if c.truncated else INVALID_NOTE.format(errors=str(err)[:800])
     stats.attempts = 2
     c2 = await provider.complete(prompt + note, schema, temp, strict=True, reasoning=reasoning)
+    if c2.usage:
+        stats.tokens.add(c2.usage)
     value, err = _parse(c2, model_cls, stats)
     if value is not None:
         return value, stats

@@ -12,7 +12,7 @@ POST /score/stream {rfp?, proposal, weights?}            (POST /score = same, bl
 1. parse        code   → sections with hierarchical ids (§2, §3.1; ¶n fallback)   → event: sections
 2. LLM call 1   →  requirements[] + constraints[] + suggestedWeights[]              → event: requirements
 3. signals      code   → vague phrases, money & dates in pricing / timeline sections
-4. LLM call 2   split (remote provider, default):
+4. LLM call 2   split (Gemini, default):
                    2a  coverage + constraintViolations          small: ids, enums, one-line fixes  → event: coverage
                    2b  three groups in parallel, findings → scores:
                        understanding  #1 problem, #6 tone         (+ RFP text)
@@ -48,12 +48,11 @@ mode exists for a single local GPU (`LLM_SPLIT_CALLS=auto` picks by provider).
 | 2a (or the merged call) fails | `done` with `partial: true`, `error`, and the requirements from call 1 |
 | a 2b group fails | its criteria `null` with a note; the other groups score; `warnings`, `partial: true` |
 | an output is cut | salvaged prefix used; `meta.truncated`, `warnings`, `partial: true`; the cache remembers it |
-| remote rejects `json_schema` or `reasoning_effort` (HTTP 400) | that feature is switched off for the process and the call repeats |
 
 ## Run with Docker (the demo path)
 
 ```bash
-cp .env.example .env        # ollama test mode by default
+cp .env.example .env        # then paste your Gemini key into GEMINI_API_KEY
 ./run.sh up                 # build, start ollama + backend + nginx, pull qwen2.5:7b (~4.5 GB)
 curl localhost/api/health   # {"ok":true}     docs: http://localhost/api/docs
 ./run.sh score              # weak sample through nginx (blocking)
@@ -68,20 +67,29 @@ Only nginx has a host port: `/api/*` → backend (prefix stripped, buffering off
 
 ```bash
 uv sync
-docker compose up -d ollama && docker compose exec ollama ollama pull qwen2.5:7b
-OLLAMA_URL=http://localhost:11434 uv run uvicorn app.main:app --reload   # :8000/docs
+uv run --env-file .env uvicorn app.main:app --reload   # :8000/docs, Gemini via .env
+# offline instead: LLM_PROVIDER=ollama in .env, then
+# docker compose up -d ollama && docker compose exec ollama ollama pull qwen2.5:7b
+# OLLAMA_URL=http://localhost:11434 uv run --env-file .env uvicorn app.main:app --reload
 uv run pytest                 # offline tests (fake provider; no LLM needed)
 uv run ruff check . && uv run ruff format --check . && uv run basedpyright
 uv run --env-file .env python tests/regression.py    # needs a reachable LLM
 ```
 
-## Switch to the provided LLM
+## LLM provider
 
-Edit `.env`: `LLM_PROVIDER=remote`, `REMOTE_BASE_URL`, `REMOTE_API_KEY`, `REMOTE_MODEL`
-(any OpenAI-compatible chat endpoint, e.g. Gemini's `…/v1beta/openai`), then
-`docker compose up -d --build backend`. Split mode is then on: one scoring run is **5 LLM
-calls** (1 + 2a + 3) instead of 2. On a free tier, check requests-per-minute before demoing
-two uncached documents back to back; `LLM_SPLIT_CALLS=false` forces the merged call.
+Gemini is the default, through the `google-genai` SDK: `GEMINI_MODEL=gemini-3.8-flash` is
+built in and only `GEMINI_API_KEY` needs filling in `.env`. Each call sends the Pydantic
+schema as the response JSON schema and `LLM_REASONING_EFFORT` as the thinking level (Gemini
+2.5 models get the matching token budget). Split mode is on for Gemini: one scoring run is
+**5 LLM calls** (1 + 2a + 3) instead of 2. On a free tier, check requests-per-minute before
+demoing two uncached documents back to back; `LLM_SPLIT_CALLS=false` forces the merged call.
+To run offline set `LLM_PROVIDER=ollama` (see "Run locally").
+
+Every real call appends a row to `data/usage.csv` (time, call, model, prompt / output /
+thinking / cached tokens, USD at Gemini 3.8 Flash list price); once a day's total passes
+$20 the backend logs a warning, which is what a runaway loop looks like. Rate-limit (429)
+and overload (503) responses are retried up to three times with backoff before a run fails.
 
 ## Contract
 
@@ -103,5 +111,6 @@ the text a citation points at.
 | regex signals         | `src/app/signals.py`               |
 | weights, completeness, dedupe | `src/app/aggregate.py`     |
 | provider, budget, salvage, retry | `src/app/llm.py`        |
+| per-call token log, spend ceiling | `src/app/usage.py`      |
 | LLM cache (git-ignored) | `data/cache/`                    |
 | sample data           | `../sample_data/*.md` (mounted at `/sample_data` in the container) |
