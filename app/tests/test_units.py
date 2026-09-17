@@ -105,6 +105,7 @@ SCORE = {
             "rfpQuote": None,
             "explanation": "vague",
             "severity": "LOW",
+            "fix": "name the roles",
         },
         {
             "type": "CONTRADICTION",
@@ -112,6 +113,7 @@ SCORE = {
             "rfpQuote": None,
             "explanation": "not in the text",
             "severity": "HIGH",
+            "fix": "delete it",
         },
     ],
 }

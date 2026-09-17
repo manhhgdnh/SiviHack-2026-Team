@@ -39,6 +39,7 @@ export interface RiskFinding {
   rfpQuote?: string | null;
   explanation: string;
   severity: Severity;
+  fix?: string;                  // one concrete action; empty on older results
   grounded?: boolean;
 }
 
