@@ -14,9 +14,9 @@ USD 0.011; a five-call run about USD 0.06.
 | 4 | Prompt-tuning iteration 1 (only changed prompts re-record) | live | ≤ 20 | ≤ 0.45 | 0.90 | not needed |
 | 5 | Prompt-tuning iteration 2 | live | ≤ 20 | ≤ 0.45 | 1.35 | not needed |
 | 6 | Warm the demo cache from the recordings (`make warm` / `./run.sh warm`) | replay | 0 | 0.00 | 1.35 | 0.000 |
-| 7 | Live UI check of the four samples and no-RFP (cache hits after step 6) | cached | 0 | 0.00 | 1.35 | |
-| 8 | Unseen-pair rehearsal (team-authored pair) plus one apply-fix re-run | live | 9 | 0.35 | 1.70 | |
-| 9 | Compose smoke with a cached sample | cached | 0 | 0.00 | 1.70 | |
+| 7 | Live UI check of the four samples and no-RFP (cache hits after step 6) | cached | 0 | 0.00 | 1.35 | 0.000 |
+| 8 | Unseen-pair rehearsal (`docs/rehearsal/`, Harborview) through the compose stack | live | 5 | 0.35 | 1.70 | 0.029 |
+| 9 | Compose smoke with a cached sample | cached | 0 | 0.00 | 1.70 | 0.000 |
 | 10 | Demo-day tech check, rehearsal pair once through http://localhost | live | 5 | 0.20 | 1.90 | |
 | 11 | Demo: judges' pair, one edit re-run, one spare document | live | ~14 | 0.55 | 2.45 | |
 | — | Reserve for 429 retries, a third tuning pass, mistakes; the guard stops everything at 5.00 | | | 2.55 | 5.00 | |
@@ -29,3 +29,8 @@ tuning passes were not spent.
 Re-recording rules: a change to any prompt wording, a sample file or the canonical text rule
 changes the replay keys of the affected calls only; run the recorder again and only those are
 paid for. Bump `PROMPT_VERSION` whenever prompts change so the disk cache also refreshes.
+
+Spent so far: USD 0.125 (recording 0.095, unseen-pair rehearsal 0.029). The rehearsal pair
+scored 2.0 "Not ready" with the planted violation caught ("no replacement of Koha" against
+"we will migrate patron records out of Koha"), one contradicted requirement, two not found,
+and fixes on every entry; `docs/screenshots/12-live-rehearsal.jpg`.
