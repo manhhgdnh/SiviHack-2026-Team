@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
+# Dev menu for the Proposal Scorer backend (BACKEND.md §18/§20). Run from anywhere.
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
-MODEL="${OLLAMA_MODEL:-qwen3:8b}"
-API_URL="http://localhost:8000"
+# Model: env var > .env > plan default
+env_model=""
+[[ -f .env ]] && env_model="$(grep -E '^OLLAMA_MODEL=' .env | tail -1 | cut -d= -f2- | sed 's/[[:space:]]*#.*//' | xargs || true)"
+MODEL="${OLLAMA_MODEL:-${env_model:-qwen2.5:7b}}"
+API_URL="http://localhost/api"             # through nginx; backend has no host port
+SAMPLES="$(cd .. && pwd)/sample_data"
 
 c()   { printf "\033[%sm%s\033[0m" "$1" "$2"; }
 info(){ echo "$(c '1;34' '›') $*"; }
@@ -18,17 +23,19 @@ confirm() {
 }
 
 up() {
+  if [[ ! -f .env ]]; then
+    cp .env.example .env
+    warn "created .env from .env.example (ollama test mode)"
+  fi
   info "building + starting services..."
   docker compose up -d --build
-  ok "services up. api → $API_URL"
+  ok "services up. api → $API_URL  (docs: http://localhost/api/docs)"
   pull_model
 }
 
 pull_model() {
   info "ensuring model '$MODEL' is present..."
-
-  if docker compose exec -T ollama ollama list 2>/dev/null |
-    grep -q "${MODEL%%:*}"; then
+  if docker compose exec -T ollama ollama list 2>/dev/null | grep -qF "$MODEL"; then
     ok "model '$MODEL' already pulled."
   else
     docker compose exec -T ollama ollama pull "$MODEL"
@@ -54,59 +61,61 @@ status() {
   health
 }
 
-reset_venv() {
-  warn "this removes api container + .venv volume, then rebuilds."
-  confirm "reset .venv?" || {
-    info "skipped."
-    return
-  }
+score() {
+  local sample="${1:-response_1_weak.md}"
+  info "POST $API_URL/score with $sample vs rfp_nordframe.md (slow on a local 7B)..."
+  python3 - "$SAMPLES/rfp_nordframe.md" "$SAMPLES/$sample" <<'PY' |
+import json, pathlib, sys
+print(json.dumps({
+  "rfp": pathlib.Path(sys.argv[1]).read_text(),
+  "proposal": pathlib.Path(sys.argv[2]).read_text(),
+}))
+PY
+    curl -sS "$API_URL/score" -H 'Content-Type: application/json' -d @- | python3 -m json.tool
+}
 
-  docker compose rm -sf api
-  docker volume prune -f >/dev/null
-  docker compose build --no-cache api
-  docker compose up -d api
-
-  ok ".venv reset + api rebuilt."
+regression() {
+  info "running tests/regression.py inside the backend container..."
+  docker compose exec -T backend python tests/regression.py /sample_data
 }
 
 reset() {
-  warn "this deletes containers, volumes, and local project images."
+  warn "this deletes containers, volumes (incl. pulled models), and local project images."
   confirm "reset everything?" || {
     info "skipped."
     return
   }
-
   docker compose down -v --rmi local
-  docker volume prune -f >/dev/null
-
   ok "reset complete."
 }
 
 menu() {
   echo
-  echo "$(c '1;36' 'router — dev menu')"
+  echo "$(c '1;36' 'proposal-scorer — dev menu')"
 
-  cat <<'EOF'
+  cat <<'MENU'
   1) up          build + start + pull model
-  2) logs        follow api logs
+  2) logs        follow backend logs
   3) status      containers + health
   4) health      api health check
   5) pull-model  ensure ollama model present
-  6) reset       full reset
-  7) reset-venv  rebuild api + wipe .venv
+  6) score       smoke-test /score with the weak sample
+  7) regression  run all 4 samples, assert weak < medium < strong
+  8) reset       full reset
   q) quit
-EOF
+MENU
 
   read -rp "$(c '1;36' 'choose› ')" choice
 
   case "$choice" in
     1) up ;;
-    2) logs api ;;
+    2) logs backend ;;
     3) status ;;
     4) health ;;
     5) pull_model ;;
-    6) reset ;;
-    7) reset_venv ;;
+    6) score ;;
+    7) regression ;;
+    8) reset ;;
     q|Q) exit 0 ;;
     *) warn "unknown option" ;;
   esac
@@ -117,14 +126,15 @@ if [[ $# -gt 0 ]]; then
   shift
 
   case "$cmd" in
-    up)          up ;;
-    logs)        logs "${1:-}" ;;
-    status)      status ;;
-    health)      health ;;
+    up)              up ;;
+    logs)            logs "${1:-}" ;;
+    status)          status ;;
+    health)          health ;;
     pull-model|pull) pull_model ;;
-    reset)       reset ;;
-    reset-venv)  reset_venv ;;
-    *)           err "unknown command: $cmd"; exit 1 ;;
+    score)           score "${1:-}" ;;
+    regression)      regression ;;
+    reset)           reset ;;
+    *)               err "unknown command: $cmd"; exit 1 ;;
   esac
 else
   while true; do

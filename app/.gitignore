@@ -11,9 +11,8 @@ __pycache__/
 .env.*
 !.env.example
 
-# n8n writes these at runtime — keep the input CSV, ignore generated outputs
-fixtures/home/
-fixtures/events/
+# Runtime cache (RFP extractions + regression outputs)
+data/cache/
 
 # OS / editor
 .DS_Store

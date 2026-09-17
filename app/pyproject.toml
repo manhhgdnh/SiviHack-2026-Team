@@ -1,34 +1,43 @@
 [project]
-name = "router"
+name = "proposal-scorer"
 version = "0.1.0"
-description = "Task classification + routing demo"
+description = "Proposal Scorer v0 — FastAPI backend that scores a sales proposal against a client RFP (plan: ../BACKEND.md)"
 authors = [
     { name = "UNtergas", email = "mycomputerer135@gmail.com" }
 ]
 requires-python = ">=3.13,<3.14"
 dependencies = [
-    "datasets>=5.0.1",
-    "fastapi[standard]>=0.141.1",
-    "ollama>=0.6.2",
-    "psycopg[binary]>=3.3.5",
-    "pydantic>=2.13.5",
-    "sqlmodel>=0.0.42",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2",
+    "httpx>=0.27",
+    # optional fuzzy fallback for grounding; grounding.py degrades gracefully without it
+    "rapidfuzz>=3",
 ]
 
 [build-system]
 requires = ["uv_build>=0.12.9,<0.13.0"]
 build-backend = "uv_build"
 
+[tool.uv.build-backend]
+# The importable package is src/app (uvicorn app.main:app, as in BACKEND.md);
+# the distribution keeps the readable name above.
+module-name = "app"
+
 [dependency-groups]
 dev = [
     "basedpyright>=1.40.1",
+    "pytest>=8",
     "ruff>=0.16.7",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [tool.basedpyright]
 typeCheckingMode = "basic"
 pythonVersion = "3.13"
-include = ["src"]
+include = ["src", "tests"]
 
 [tool.ruff]
 target-version = "py313"
