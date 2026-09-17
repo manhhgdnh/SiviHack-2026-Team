@@ -1,11 +1,12 @@
-"""Regression check + demo fallback (BACKEND.md §19). Plain asyncio, no framework.
+"""Regression check + demo fallback. Plain asyncio, no framework; needs a reachable LLM.
 
 Runs the 4 sample responses against the sample RFP, prints a table, asserts
-weak < medium < strong and that the overpromising one is caught, and saves every
-ScoringResult to data/cache/<name>.json (hand one to the frontend as the sample result).
+weak < medium < strong and that the overpromising one is caught by a constraint violation,
+and saves every ScoringResult to data/cache/<name>.json (hand one to the frontend as the
+sample result).
 
     uv run --env-file .env python tests/regression.py [SAMPLES_DIR]
-    docker compose exec backend python tests/regression.py
+    docker compose exec backend python tests/regression.py /sample_data
 """
 
 import asyncio
@@ -28,8 +29,15 @@ STATUSES = ["ADDRESSED", "PARTIAL", "MISSING", "CONTRADICTED"]
 
 
 def _row(name: str, r: ScoringResult) -> str:
+    overall = f"{r.overall:>5.2f}" if r.overall is not None else " none"
     counts = " ".join(f"{s[:4]}={sum(1 for c in r.coverage if c.status == s)}" for s in STATUSES)
-    return f"{name:<28} {r.overall:>5.2f}  {counts}  risks={len(r.risks)}  {r.meta.durationMs}ms"
+    flags = " PARTIAL" if r.partial else ""
+    return (
+        f"{name:<28} {overall}  {counts}  violations={len(r.constraintViolations)} "
+        f"findings={len(r.findings)} dropped={r.meta.ungroundedDropped} "
+        f"fuzzy={r.meta.fuzzyMatched}  {r.meta.mode} calls={r.meta.llmCalls} "
+        f"cut={r.meta.truncated}  {r.meta.durationMs}ms{flags}"
+    )
 
 
 async def main(samples: Path) -> int:
@@ -45,14 +53,28 @@ async def main(samples: Path) -> int:
 
     weak, medium, strong, over = (results[n] for n in RESPONSES)
     failures: list[str] = []
-    if not (weak.overall < medium.overall < strong.overall):
+    for name, r in results.items():
+        if r.error:
+            failures.append(f"{name}: {r.error}")
+        for w in r.warnings:
+            print(f"warn  {name}: {w}")
+    scores = [weak.overall, medium.overall, strong.overall]
+    if any(s is None for s in scores):
+        failures.append(f"an overall is missing: weak/medium/strong = {scores}")
+    elif not (scores[0] < scores[1] < scores[2]):  # type: ignore[operator]
         failures.append(
-            f"separation broken: weak={weak.overall} medium={medium.overall} strong={strong.overall}"
+            f"separation broken: weak={scores[0]} medium={scores[1]} strong={scores[2]}"
         )
+    if not over.constraintViolations:
+        failures.append("overpromise has no constraint violation (PostgreSQL migration)")
     if not any(c.status == "CONTRADICTED" for c in over.coverage):
-        failures.append("overpromise has no CONTRADICTED coverage item")
-    if not over.risks:
-        failures.append("overpromise has no risk finding")
+        print("note  overpromise has no CONTRADICTED coverage item (violation caught it instead)")
+    if not over.findings:
+        failures.append("overpromise has no finding (8-week timeline / scope creep)")
+    if strong.constraintViolations:
+        failures.append(
+            f"strong proposal has {len(strong.constraintViolations)} constraint violation(s)"
+        )
 
     print()
     if failures:

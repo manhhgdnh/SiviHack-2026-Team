@@ -74,6 +74,20 @@ PY
     curl -sS "$API_URL/score" -H 'Content-Type: application/json' -d @- | python3 -m json.tool
 }
 
+stream() {
+  local sample="${1:-response_4_overpromise.md}"
+  info "POST $API_URL/score/stream (SSE) with $sample vs rfp_nordframe.md — events print as they arrive..."
+  python3 - "$SAMPLES/rfp_nordframe.md" "$SAMPLES/$sample" <<'PY' |
+import json, pathlib, sys
+print(json.dumps({
+  "rfp": pathlib.Path(sys.argv[1]).read_text(),
+  "proposal": pathlib.Path(sys.argv[2]).read_text(),
+}))
+PY
+    curl -sSN "$API_URL/score/stream" -H 'Content-Type: application/json' -H 'Accept: text/event-stream' -d @- |
+    cut -c1-220
+}
+
 regression() {
   info "running tests/regression.py inside the backend container..."
   docker compose exec -T backend python tests/regression.py /sample_data
@@ -100,8 +114,9 @@ menu() {
   4) health      api health check
   5) pull-model  ensure ollama model present
   6) score       smoke-test /score with the weak sample
-  7) regression  run all 4 samples, assert weak < medium < strong
-  8) reset       full reset
+  7) stream      smoke-test /score/stream (SSE) with the overpromise sample
+  8) regression  run all 4 samples, assert weak < medium < strong
+  9) reset       full reset
   q) quit
 MENU
 
@@ -114,8 +129,9 @@ MENU
     4) health ;;
     5) pull_model ;;
     6) score ;;
-    7) regression ;;
-    8) reset ;;
+    7) stream ;;
+    8) regression ;;
+    9) reset ;;
     q|Q) exit 0 ;;
     *) warn "unknown option" ;;
   esac
@@ -132,6 +148,7 @@ if [[ $# -gt 0 ]]; then
     health)          health ;;
     pull-model|pull) pull_model ;;
     score)           score "${1:-}" ;;
+    stream)          stream "${1:-}" ;;
     regression)      regression ;;
     reset)           reset ;;
     *)               err "unknown command: $cmd"; exit 1 ;;
