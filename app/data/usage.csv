@@ -34,3 +34,8 @@ time,call,model,prompt,output,thinking,cached,usd
 2026-09-18T04:21:17,group:risk,gemini-3.8-flash,1941,321,0,0,0.002659
 2026-09-18T04:21:19,group:commercials,gemini-3.8-flash,2189,903,0,0,0.005028
 2026-09-18T04:21:24,group:understanding,gemini-3.8-flash,2340,375,0,0,0.003161
+2026-09-18T04:34:43,extract,gemini-3.8-flash,819,1264,0,0,0.005354
+2026-09-18T04:34:49,coverage,gemini-3.8-flash,2061,607,1688,0,0.010152
+2026-09-18T04:34:51,group:risk,gemini-3.8-flash,2169,165,0,0,0.002246
+2026-09-18T04:34:52,group:understanding,gemini-3.8-flash,2568,385,0,0,0.003370
+2026-09-18T04:34:52,group:commercials,gemini-3.8-flash,2510,494,0,0,0.003735
