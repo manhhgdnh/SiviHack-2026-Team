@@ -139,6 +139,13 @@ export interface CriterionScore {
 
 export type Verdict = "ready" | "fix" | "not-ready"
 
+/** Deterministic evidence computed from the draft's text by code, shown beside a score. */
+export interface Signal {
+  kind: "amount" | "date" | "vague"
+  value: string
+  citation: Citation
+}
+
 export interface WeightSuggestion {
   criterionId: CriterionId
   /** Share of 100 (the backend's relative weight, normalised). */
@@ -163,6 +170,8 @@ export interface Review {
   issues: Issue[]
   suggestedWeights: WeightSuggestion[]
   signals: Signals
+  /** Amounts under pricing, dates under timeline, vague wording where it sits. */
+  evidence: Partial<Record<CriterionId, Signal[]>>
   sections: Outlines
   meta: ScoringMeta
   /** Something is missing: see `error` and `warnings`. */

@@ -19,6 +19,10 @@ api:check` fails when it is stale). `src/api/schema.ts` is the UI's own vocabula
 `POST /score/stream` as typed frames validated with the generated zod schemas, so a backend
 that drifted surfaces as a "contract" error naming the field, never as a crash.
 
+## Export
+
+`src/lib/export.ts` renders the review as one report model with two renderers: Markdown, and Word through the `docx` library. The band's "Export" menu offers both.
+
 ## Checks
 
 `npm run build` (runs `tsc -b`) and `npm run lint`. Behaviour is verified by hand with

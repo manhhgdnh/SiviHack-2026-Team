@@ -54,7 +54,11 @@ note (except addressed ones), R and P chips or "no answering passage", and a col
 square; below the list "Constraints 4" with Technology / Budget / Deadline readings and hollow
 "Respected" squares. "Criteria 7": seven rows with N/5, five marks, a percentage and a slider,
 a note where there is one ("Computed from coverage…" on Completeness), a strength, a weakness
-and chips; one chip on Risk & Assumptions carries "≈" (near match) with a hover title.
+and chips; one chip on Risk & Assumptions carries "≈" (near match) with a hover title. Under
+Pricing Clarity an "Evidence from the text" line lists €70,000 and €110,000 with chips and
+"after discovery · vague"; under Timeline Clarity it lists "will be confirmed · vague" and
+says no dates or durations were found. "Export" in the band offers Markdown (.md) and Word
+(.docx); each downloads `review-<title>-<date>.<ext>` and shows a toast.
 
 ## E5. Overpromising: a violation, separate from risks
 

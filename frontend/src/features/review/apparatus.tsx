@@ -7,12 +7,14 @@ import type {
   Constraint,
   ConstraintKind,
   Criterion,
+  CriterionId,
   CriterionScore,
   FindingType,
   Issue,
   Requirement,
   RequirementStatus,
   Severity,
+  Signal,
 } from "@/api/schema"
 import { CitationRef } from "@/components/apparatus/citation-ref"
 import { Lemma } from "@/components/apparatus/lemma"
@@ -192,13 +194,44 @@ function ScoreMarks({ score }: { score: number | null }) {
   )
 }
 
+/** What code found in the draft for this criterion; absence is evidence too. */
+function EvidenceLine({ id, signals }: { id: CriterionId; signals: Signal[] }) {
+  const expects =
+    id === "pricing_clarity"
+      ? { kind: "amount", words: "amounts" }
+      : id === "timeline_clarity"
+        ? { kind: "date", words: "dates or durations" }
+        : null
+  if (signals.length === 0 && !expects) return null
+  const missing = expects && !signals.some((s) => s.kind === expects.kind)
+  return (
+    <div className="mt-2.5">
+      <p className="editorial text-ink-3 mb-1">Evidence from the text</p>
+      {missing && <p className="text-ink-2 mb-1 text-[0.85rem]">No {expects.words} found in the draft.</p>}
+      {signals.length > 0 && (
+        <ul className="flex flex-wrap items-baseline gap-x-4 gap-y-1.5">
+          {signals.map((s, i) => (
+            <li key={`${s.kind}-${i}`} className="flex items-baseline gap-x-1.5">
+              <span className="text-ink font-serif text-[0.9rem]">{s.value}</span>
+              {s.kind === "vague" && <span className="editorial text-ink-3">vague</span>}
+              <CitationRef citation={s.citation} sourceId={`ev-${id}-${i}`} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export function CriteriaPanel({
   criteria,
   scores,
+  evidence,
   onCriteria,
 }: {
   criteria: Criterion[]
   scores: CriterionScore[]
+  evidence: Partial<Record<CriterionId, Signal[]>>
   /** When present, weights become live and the verdict recomputes as they move. */
   onCriteria?: (next: Criterion[]) => void
 }) {
@@ -275,6 +308,8 @@ export function CriteriaPanel({
                     ))}
                   </div>
                 )}
+
+                <EvidenceLine id={c.id} signals={evidence[c.id] ?? []} />
               </div>
             </li>
           )

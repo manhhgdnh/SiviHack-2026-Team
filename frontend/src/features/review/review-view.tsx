@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react"
-import { ArrowRight, Pencil, RotateCw } from "lucide-react"
+import { ArrowRight, Download, Pencil, RotateCw } from "lucide-react"
+import { toast } from "sonner"
 import { useDefaultLayout, type Layout } from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
@@ -12,12 +13,19 @@ import type {
   Verdict,
   Witness,
 } from "@/api/schema"
+import { download, reportBlocks, reportFilename, toDocx, toMarkdown } from "@/lib/export"
 import { excerpt, samePassage } from "@/lib/quote"
 import { useMediaQuery } from "@/lib/use-media-query"
 import { ClothBand } from "@/components/apparatus/cloth-band"
 import { WitnessPane } from "@/components/apparatus/witness-pane"
 import { Siglum } from "@/components/apparatus/siglum"
 import { useCollation } from "@/components/apparatus/collation"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import {
   ResizableHandle,
   ResizablePanel,
@@ -388,6 +396,22 @@ export function ReviewView({
       return next
     })
 
+  /** The review as a file for the writer: Markdown for readers of text, Word for the rest. */
+  const exportAs = async (ext: "md" | "docx") => {
+    const blocks = reportBlocks(review, criteria, score, witnesses)
+    const name = reportFilename(witnesses, ext)
+    try {
+      const blob =
+        ext === "md"
+          ? new Blob([toMarkdown(blocks)], { type: "text/markdown;charset=utf-8" })
+          : await toDocx(blocks)
+      download(blob, name)
+      toast.success(`Exported ${name}`)
+    } catch (e) {
+      toast.error(`Could not build the ${ext === "md" ? "Markdown" : "Word"} file: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
+
   const panelIds = [
     "apparatus",
     ...(showR ? ["witness-r"] : []),
@@ -507,7 +531,12 @@ export function ReviewView({
           />
         )}
         {panel === "criteria" && (
-          <CriteriaPanel criteria={criteria} scores={review.criteria} onCriteria={onCriteria} />
+          <CriteriaPanel
+            criteria={criteria}
+            scores={review.criteria}
+            evidence={review.evidence}
+            onCriteria={onCriteria}
+          />
         )}
       </div>
     </div>
@@ -531,6 +560,26 @@ export function ReviewView({
               ))
         }
       >
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            aria-label="Export the review"
+            className={cn(
+              "editorial border-cloth-text/40 text-cloth-text/90 inline-flex cursor-pointer items-center gap-2 border px-4 py-3",
+              "hover:bg-cloth-text/12 hover:text-cloth-text transition-colors",
+            )}
+          >
+            <Download className="size-3.5" />
+            Export
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="border-rule min-w-[11rem] rounded-none bg-paper text-ink">
+            <DropdownMenuItem className="editorial cursor-pointer rounded-none" onSelect={() => void exportAs("md")}>
+              Markdown (.md)
+            </DropdownMenuItem>
+            <DropdownMenuItem className="editorial cursor-pointer rounded-none" onSelect={() => void exportAs("docx")}>
+              Word (.docx)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <button
           type="button"
           onClick={onEdit}

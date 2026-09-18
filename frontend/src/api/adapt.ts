@@ -18,6 +18,7 @@ import type {
   RequirementStatus,
   Review,
   Severity,
+  Signal,
   WeightSuggestion,
 } from "@/api/schema"
 import { excerpt, plain } from "@/lib/quote"
@@ -189,6 +190,28 @@ export function adapt(r: ScoringResult): Review {
     citations: s.citations.map((c) => cite(c.source, c.section, c.quote, c.grounding)),
   }))
 
+  // Code-derived signals as evidence: an amount belongs beside Pricing, a date beside
+  // Timeline, and a vague phrase beside whichever of the two owns its section (else Scope).
+  const evidence: Partial<Record<CriterionId, Signal[]>> = {}
+  const add = (id: CriterionId, s: Signal) => {
+    ;(evidence[id] ??= []).push(s)
+  }
+  for (const m of r.signals.pricing.mentions) {
+    add("pricing_clarity", { kind: "amount", value: m.value, citation: cite("proposal", m.section, m.value) })
+  }
+  for (const m of r.signals.timeline.mentions) {
+    add("timeline_clarity", { kind: "date", value: m.value, citation: cite("proposal", m.section, m.value) })
+  }
+  for (const v of r.signals.vaguePhrases) {
+    const owner: CriterionId =
+      v.section && r.signals.pricing.sections.includes(v.section)
+        ? "pricing_clarity"
+        : v.section && r.signals.timeline.sections.includes(v.section)
+          ? "timeline_clarity"
+          : "scope_clarity"
+    add(owner, { kind: "vague", value: v.phrase, citation: cite("proposal", v.section, v.phrase) })
+  }
+
   return {
     overall: r.overall,
     verdict: verdictFor(r.overall),
@@ -198,6 +221,7 @@ export function adapt(r: ScoringResult): Review {
     issues,
     suggestedWeights: adaptSuggestions(r.suggestedWeights),
     signals: r.signals,
+    evidence,
     sections: r.sections,
     meta: r.meta,
     partial: r.partial,

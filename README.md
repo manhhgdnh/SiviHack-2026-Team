@@ -25,6 +25,9 @@ stage by stage:
 - **Works without an RFP**: the draft is scored on six criteria and the coverage stage is
   skipped, with the omission stated on screen.
 - **AI-suggested weights from the RFP**, which the user accepts or adjusts.
+- **Code-derived evidence beside the scores**: the amounts, dates and vague phrases the
+  draft contains, each a live citation, under the Pricing and Timeline criteria.
+- **Export** of the whole review as Markdown or Word, to hand to the proposal writer.
 
 ## 2. Setup and how to run the demo
 
