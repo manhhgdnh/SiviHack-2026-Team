@@ -404,7 +404,7 @@ export function ReviewView({
       const blob =
         ext === "md"
           ? new Blob([toMarkdown(blocks)], { type: "text/markdown;charset=utf-8" })
-          : await toDocx(blocks)
+          : await toDocx(blocks, name.replace(/\.docx$/, ""))
       download(blob, name)
       toast.success(`Exported ${name}`)
     } catch (e) {
