@@ -14,7 +14,6 @@ __pycache__/
 
 # Runtime cache (RFP extractions + regression outputs)
 data/cache/
-data/usage.csv
 
 # OS / editor
 .DS_Store
