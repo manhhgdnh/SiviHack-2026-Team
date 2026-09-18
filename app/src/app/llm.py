@@ -272,6 +272,15 @@ class GeminiProvider(LlmProvider):
         cand = r.candidates[0]
         parts = (cand.content.parts if cand.content else None) or []
         text = "".join(p.text for p in parts if p.text and not p.thought)
+        if cand.finish_reason == gt.FinishReason.MAX_TOKENS:
+            log.warning(
+                "gemini %s: answer cut at the output budget (%d tokens)",
+                self.model,
+                config.MAX_OUTPUT_TOKENS,
+            )
+        log.debug(
+            "gemini %s: finish=%s, answer head: %s", self.model, cand.finish_reason, text[:300]
+        )
         u = r.usage_metadata
         usage = (
             TokenUsage(

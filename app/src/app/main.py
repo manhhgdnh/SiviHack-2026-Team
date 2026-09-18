@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 
+from app.logs import configure
 from app.pipeline import extract_requirements, run, score_proposal
 from app.schema import (
     ErrorDetail,
@@ -30,6 +31,7 @@ from app.schema import (
 )
 
 log = logging.getLogger(__name__)
+configure()
 
 
 def unique_id(route: APIRoute) -> str:

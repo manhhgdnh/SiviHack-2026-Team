@@ -313,6 +313,15 @@ class ErrorEvent(Model):
     error: str
 
 
+class ProgressEvent(Model):
+    """A live note between stages: what the pipeline is doing right now, in plain words,
+    so the wait is never a black box. `stage` is the stage being worked on."""
+
+    stage: str
+    message: str
+    elapsedMs: int
+
+
 # `done` carries the full ScoringResult.
 type EventPayload = (
     SectionsEvent
@@ -321,6 +330,7 @@ type EventPayload = (
     | ScoresEvent
     | FindingsEvent
     | ErrorEvent
+    | ProgressEvent
     | ScoringResult
 )
 
@@ -361,9 +371,15 @@ class ErrorFrame(Model):
     data: ErrorEvent
 
 
+class ProgressFrame(Model):
+    event: Literal["progress"]
+    data: ProgressEvent
+
+
 # Discriminated on `event`, so the generated client gets a tagged union and validates each
 # frame in one parse. Order on the wire: sections → requirements → coverage → scores →
-# findings → done; `error` is terminal and can replace anything after the first frame.
+# findings → done; `progress` notes appear between them; `error` is terminal and can replace
+# anything after the first frame.
 type StreamEvent = Annotated[
     SectionsFrame
     | RequirementsFrame
@@ -371,6 +387,7 @@ type StreamEvent = Annotated[
     | ScoresFrame
     | FindingsFrame
     | DoneFrame
-    | ErrorFrame,
+    | ErrorFrame
+    | ProgressFrame,
     Field(discriminator="event"),
 ]

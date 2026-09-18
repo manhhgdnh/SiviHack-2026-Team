@@ -21,7 +21,7 @@ def test_contract_carries_everything_a_generator_needs():
     c = spec["components"]["schemas"]
 
     disc = c["StreamEvent"]["discriminator"]
-    assert disc["propertyName"] == "event" and len(disc["mapping"]) == 7
+    assert disc["propertyName"] == "event" and len(disc["mapping"]) == 8
     stream = spec["paths"]["/score/stream"]["post"]["responses"]
     assert list(stream["200"]["content"]) == ["text/event-stream"]
     assert stream["200"]["content"]["text/event-stream"]["schema"] == {

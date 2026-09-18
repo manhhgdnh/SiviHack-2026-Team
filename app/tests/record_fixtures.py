@@ -65,4 +65,7 @@ async def main(force: bool) -> int:
 
 
 if __name__ == "__main__":
+    from app.logs import configure
+
+    configure()
     sys.exit(asyncio.run(main("--force" in sys.argv)))

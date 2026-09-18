@@ -22,6 +22,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import secrets
 import time
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -48,10 +49,14 @@ from app.llm import CallStats, LlmProvider, call_json, get_provider
 from app.prompts import (
     GROUPS,
     PROMPT_VERSION,
+    Group,
     build_coverage_prompt,
     build_extract_prompt,
     build_group_prompt,
     build_score_prompt,
+)
+from app.schema import (
+    LLM_CRITERIA as LLM_CRITERIA_IDS,
 )
 from app.schema import (
     CoverageEvent,
@@ -62,6 +67,7 @@ from app.schema import (
     FindingsEvent,
     GroupLlmOutput,
     Outlines,
+    ProgressEvent,
     RequirementsEvent,
     RfpExtraction,
     ScoreLlmOutput,
@@ -119,6 +125,7 @@ async def cached_call[T: BaseModel](
     prompt: str,
     provider: LlmProvider,
     reasoning: str | None,
+    tag: str = "",
 ) -> tuple[T, CallStats, bool]:
     """`call_json` behind the disk cache. The *raw* model output is cached (grounding is
     re-applied on every read), together with whether it had to be salvaged, so a cache hit
@@ -130,10 +137,36 @@ async def cached_call[T: BaseModel](
         stats = CallStats(
             attempts=0, truncated=st.get("truncated", 0), repaired=st.get("repaired", 0)
         )
+        log.info("%s %s: cache hit (%s)", tag, kind, key)
         return model_cls.model_validate(cached["value"]), stats, True
     usage.check_budget()  # a hit above never reaches here: the cache keeps working at $0
+    log.info(
+        "%s %s: calling %s %s (reasoning=%s, prompt %d chars)",
+        tag,
+        kind,
+        provider.name,
+        provider.model,
+        reasoning or "default",
+        len(prompt),
+    )
+    log.debug("%s %s: prompt head: %s", tag, kind, prompt[:300].replace("\n", " "))
+    t0 = time.perf_counter()
     value, stats = await call_json(provider, prompt, model_cls, reasoning=reasoning)
     usage.record(kind, provider.model, stats.tokens)
+    t = stats.tokens
+    log.info(
+        "%s %s: answered in %.1fs (attempts=%d%s%s; %d prompt + %d output + %d thinking tokens, $%.4f)",
+        tag,
+        kind,
+        time.perf_counter() - t0,
+        stats.attempts,
+        ", cut and salvaged" if stats.truncated else "",
+        ", repaired" if stats.repaired else "",
+        t.prompt,
+        t.output,
+        t.thinking,
+        usage.cost(t),
+    )
     _cache_put(
         key,
         {
@@ -152,7 +185,7 @@ def _reasoning(value: str) -> str | None:
 
 
 async def extract_rfp(
-    rdoc: Document, provider: LlmProvider
+    rdoc: Document, provider: LlmProvider, tag: str = ""
 ) -> tuple[RfpExtraction, CallStats, bool, GroundingStats]:
     """LLM call 1 plus grounding, behind the cache keyed on the RFP text alone, so
     POST /rfp/extract and a later full run share one LLM call."""
@@ -165,9 +198,23 @@ async def extract_rfp(
         build_extract_prompt(rdoc),
         provider,
         _reasoning(config.REASONING_EFFORT_COVERAGE),
+        tag,
     )
     ext, gstats = ground_extraction(ext, rdoc)
+    log.info(
+        "%s extract: %d requirements, %d constraints, %d suggested weights (dropped %d, fuzzy %d)",
+        tag,
+        len(ext.requirements),
+        len(ext.constraints),
+        len(ext.suggestedWeights),
+        gstats.dropped,
+        gstats.fuzzy,
+    )
     return ext, st, hit, gstats
+
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}{'' if n == 1 else 's'}"
 
 
 async def extract_requirements(rfp: str, provider: LlmProvider | None = None) -> RequirementsEvent:
@@ -189,20 +236,51 @@ async def run(
     provider: LlmProvider | None = None,
 ) -> AsyncIterator[Event]:
     t0 = time.time()
+    tag = f"[{secrets.token_hex(2)}]"  # one run's lines stay readable when two people run at once
     provider = provider or get_provider()
     norm_weights = normalize_weights(weights)
     mode: ScoringMode = "split" if split_mode(provider) else "merged"
     calls = CallStats()
     warnings: list[str] = []
+    stage = "sections"
+
+    def progress(message: str) -> Event:
+        """A live note for the trace: what is happening inside the stage being worked on."""
+        log.info("%s %s: %s", tag, stage, message)
+        return "progress", ProgressEvent(
+            stage=stage, message=message, elapsedMs=int((time.time() - t0) * 1000)
+        )
 
     rdoc, pdoc = parse(rfp), parse(proposal)
     sections = Outlines(rfp=rdoc.outline(), proposal=pdoc.outline())
+    log.info(
+        "%s run: rfp %d sections, proposal %d sections, %s mode via %s (%s)",
+        tag,
+        sections.rfp.count,
+        sections.proposal.count,
+        mode,
+        provider.name,
+        provider.model,
+    )
     yield "sections", sections
 
     # -- call 1 ----------------------------------------------------------------------------
-    ext, st, extract_hit, gstats = await extract_rfp(rdoc, provider)
+    stage = "requirements"
+    if rdoc.sections:
+        yield progress(
+            f"Split the RFP into {_plural(sections.rfp.count, 'section')} and the draft into "
+            f"{_plural(sections.proposal.count, 'section')}; asking the model for the client's "
+            "requirements and constraints…"
+        )
+    ext, st, extract_hit, gstats = await extract_rfp(rdoc, provider, tag)
     calls.add(st)
     has_rfp = bool(ext.requirements or ext.constraints)
+    if rdoc.sections:
+        yield progress(
+            f"Verified {_plural(len(ext.requirements) + len(ext.constraints), 'RFP quote')} "
+            f"against the text ({_plural(gstats.fuzzy, 'near match')}, {gstats.dropped} dropped)"
+            + (" — answered from the cache" if extract_hit else "")
+        )
     yield (
         "requirements",
         RequirementsEvent(
@@ -254,9 +332,17 @@ async def run(
         return ScoringResult(**base)
 
     # -- call 2a (or the whole merged call) ---------------------------------------------------
+    stage = "coverage"
     merged: ScoreLlmOutput | None = None
+    n_sig = (
+        len(signals.vaguePhrases) + len(signals.pricing.mentions) + len(signals.timeline.mentions)
+    )
     try:
         if mode == "merged":
+            yield progress(
+                f"Found {_plural(n_sig, 'signal')} in the draft (vague phrases, amounts, dates); "
+                "checking coverage, constraints, findings and scores in one model call…"
+            )
             merged, st, hit = await cached_call(
                 "score",
                 doc_key,
@@ -264,11 +350,16 @@ async def run(
                 build_score_prompt(ext, pdoc, signals_text),
                 provider,
                 _reasoning(config.REASONING_EFFORT_COVERAGE),
+                tag,
             )
             calls.add(st)
             score_cached &= hit
             raw_cov, raw_vio = merged.coverage, merged.constraintViolations
         elif has_rfp:
+            yield progress(
+                f"Checking {_plural(len(ext.requirements), 'requirement')} and "
+                f"{_plural(len(ext.constraints), 'constraint')} against the draft…"
+            )
             cov, st, hit = await cached_call(
                 "coverage",
                 doc_key,
@@ -276,77 +367,146 @@ async def run(
                 build_coverage_prompt(ext, pdoc),
                 provider,
                 _reasoning(config.REASONING_EFFORT_COVERAGE),
+                tag,
             )
             calls.add(st)
             score_cached &= hit
             raw_cov, raw_vio = cov.coverage, cov.constraintViolations
         else:
+            yield progress("No RFP: nothing to check coverage against; skipping to the scores")
             raw_cov, raw_vio = [], []
     except Exception as e:  # the analysis call failed after its retry: ship what we have
-        log.exception("coverage/scoring call failed; returning partial result")
+        log.exception("%s coverage/scoring call failed; returning partial result", tag)
         yield "done", result(partial=True, error=f"{type(e).__name__}: {e}")
         return
 
+    before = (gstats.dropped, gstats.fuzzy)
     coverage, violations = ground_coverage(raw_cov, raw_vio, ext, pdoc, gstats)
     coverage, violations = prioritize_coverage(coverage), prioritize_violations(violations)
+    by_status = {
+        st_: sum(1 for c in coverage if c.status == st_)
+        for st_ in ("ADDRESSED", "PARTIAL", "MISSING", "CONTRADICTED")
+    }
+    log.info(
+        "%s coverage: %s; violations %d (dropped %d, fuzzy %d)",
+        tag,
+        " ".join(f"{k.lower()}={v}" for k, v in by_status.items()),
+        len(violations),
+        gstats.dropped - before[0],
+        gstats.fuzzy - before[1],
+    )
+    if has_rfp:
+        yield progress(
+            f"Verified the cited passages ({_plural(gstats.fuzzy - before[1], 'near match')}, "
+            f"{gstats.dropped - before[0]} dropped)"
+        )
     yield "coverage", CoverageEvent(coverage=coverage, constraintViolations=violations)
 
     # -- call 2b: three groups in parallel (split) --------------------------------------------
+    stage = "scores"
     raw_scores: list[CriterionScore] = []
     raw_findings: list[Finding] = []
     failed: dict[str, str] = {}
     if merged is not None:
         raw_scores, raw_findings = merged.scores, merged.findings
+        yield progress(
+            f"{_plural(len(merged.scores), 'criterion score')} and {_plural(len(merged.findings), 'finding')} returned"
+        )
     else:
-        tasks = [
-            cached_call(
-                f"group:{g.id}",
-                doc_key,
-                GroupLlmOutput,
-                build_group_prompt(
-                    g,
-                    ext,
-                    pdoc,
-                    coverage,
-                    violations,
-                    signals_text if g.needs_signals else None,
-                    rdoc if g.needs_rfp_text else None,
-                ),
-                provider,
-                _reasoning(config.REASONING_EFFORT),
-            )
-            for g in GROUPS
-        ]
-        for g, res in zip(
-            GROUPS, await asyncio.gather(*tasks, return_exceptions=True), strict=True
-        ):
+        yield progress(
+            f"Found {_plural(n_sig, 'signal')} in the draft (vague phrases, amounts, dates); "
+            f"scoring {len(LLM_CRITERIA_IDS)} criteria in {len(GROUPS)} parallel groups: "
+            + ", ".join(g.id for g in GROUPS)
+            + "…"
+        )
+
+        async def scored(
+            g: Group,
+        ) -> tuple[Group, tuple[GroupLlmOutput, CallStats, bool] | BaseException]:
+            try:
+                return g, await cached_call(
+                    f"group:{g.id}",
+                    doc_key,
+                    GroupLlmOutput,
+                    build_group_prompt(
+                        g,
+                        ext,
+                        pdoc,
+                        coverage,
+                        violations,
+                        signals_text if g.needs_signals else None,
+                        rdoc if g.needs_rfp_text else None,
+                    ),
+                    provider,
+                    _reasoning(config.REASONING_EFFORT),
+                    tag,
+                )
+            except Exception as e:
+                return g, e
+
+        outputs: dict[str, GroupLlmOutput] = {}
+        for fut in asyncio.as_completed([scored(g) for g in GROUPS]):
+            g, res = await fut
             if isinstance(res, BaseException):
                 failed[g.id] = f"{type(res).__name__}: {res}"
-                log.error("scoring group %s failed: %s", g.id, failed[g.id])
+                log.error("%s scoring group %s failed: %s", tag, g.id, failed[g.id])
+                yield progress(
+                    f"{g.id}: the model's answer could not be used; its criteria stay unscored"
+                )
                 continue
             out, st, hit = res
             calls.add(st)
             score_cached &= hit
-            raw_scores += out.scores
-            raw_findings += out.findings
+            outputs[g.id] = out
+            yield progress(
+                f"{g.id} scored: {_plural(len(out.scores), 'criterion')}, "
+                f"{_plural(len(out.findings), 'finding')}" + (" (from cache)" if hit else "")
+            )
+        for g in GROUPS:  # a fixed order, whatever the completion order was
+            if g.id in outputs:
+                raw_scores += outputs[g.id].scores
+                raw_findings += outputs[g.id].findings
         for gid, err in failed.items():
             warnings.append(f"scoring group '{gid}' failed: {err}")
 
     # -- grounding + aggregation ----------------------------------------------------------------
+    stage = "findings"
+    before = (gstats.dropped, gstats.fuzzy)
     scores = ground_scores(raw_scores, coverage, ext, rdoc, pdoc, gstats)
     for g in GROUPS:
         if g.id in failed:
-            for s in scores:
-                if s.id in g.criteria:
-                    s.score, s.note = None, f"not assessable: scoring group '{g.id}' failed"
+            for s_ in scores:
+                if s_.id in g.criteria:
+                    s_.score, s_.note = None, f"not assessable: scoring group '{g.id}' failed"
+    n_raw = len(raw_findings)
     findings = prioritize_findings(ground_findings(raw_findings, pdoc, gstats))
     if calls.truncated:
         warnings.append(
             f"{calls.truncated} LLM output(s) hit the output limit and were salvaged; "
             "some items may be missing"
         )
+    yield progress(
+        f"Verified {_plural(n_raw, 'finding quote')} and the score citations "
+        f"({_plural(gstats.fuzzy - before[1], 'near match')}, {gstats.dropped - before[0]} dropped); "
+        f"{n_raw - len(findings)} duplicate{'s' if n_raw - len(findings) != 1 else ''} merged; "
+        "computing the overall from your weights"
+    )
 
     overall = weighted_overall(scores, norm_weights)
+    log.info(
+        "%s done in %dms: overall=%s, findings=%d, violations=%d, partial=%s, llm calls=%d, "
+        "dropped=%d fuzzy=%d, cost so far today $%.3f",
+        tag,
+        int((time.time() - t0) * 1000),
+        overall,
+        len(findings),
+        len(violations),
+        bool(failed) or calls.truncated > 0,
+        calls.attempts,
+        gstats.dropped,
+        gstats.fuzzy,
+        usage.today_usd(),
+    )
     yield "scores", ScoresEvent(scores=scores, overall=overall)
     yield "findings", FindingsEvent(findings=findings)
     yield (

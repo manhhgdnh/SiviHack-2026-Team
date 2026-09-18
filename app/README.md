@@ -95,6 +95,12 @@ and overload (503) responses are retried up to three times with backoff before a
 A hard stop: once the ledger totals `LLM_BUDGET_USD` (5 in `.env.example`) no real call is made;
 cache hits keep working. `python -m app.usage` prints today / total / budget.
 
+**Logs.** Every run logs one line per stage and per model call, tagged with a run id: cache
+hit or miss, duration, tokens and cost, grounding counts, the overall. Follow them with
+`docker compose logs -f backend` (or the uvicorn terminal); `LOG_LEVEL=DEBUG` adds the head of
+each prompt and answer. The same notes stream to the UI as `progress` frames, so the run
+trace narrates what the model is doing inside each stage.
+
 **Recording and replay.** `LLM_PROVIDER=replay` (see `.env.replay`) answers every prompt from
 `tests/fixtures/replay/<sha16>.json`, keyed by the prompt text, and fails loudly on a miss —
 no key, no network, no cost. `uv run --env-file .env python tests/record_fixtures.py` records

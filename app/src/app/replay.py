@@ -11,12 +11,15 @@ re-recording after a prompt change only pays for the prompts that changed.
 import asyncio
 import hashlib
 import json
+import logging
 import re
 from dataclasses import asdict
 from pathlib import Path
 
 from app import config
 from app.llm import Completion, JsonSchema, LlmProvider
+
+log = logging.getLogger(__name__)
 
 DEFAULT_DIR = Path(__file__).resolve().parents[2] / "tests" / "fixtures" / "replay"
 _GROUP = re.compile(r"Group id: (\w+)")
@@ -83,6 +86,7 @@ class ReplayProvider(LlmProvider):
                 "unseen document, or prompts changed — run tests/record_fixtures.py"
             )
         rec = json.loads(f.read_text())
+        log.info("replay %s: %s", kind, f.name)
         return Completion(rec["text"], bool(rec.get("truncated", False)))
 
 

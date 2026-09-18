@@ -109,5 +109,8 @@ async def main(samples: Path) -> int:
 
 
 if __name__ == "__main__":
+    from app.logs import configure
+
+    configure()
     samples = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_SAMPLES
     sys.exit(asyncio.run(main(samples)))

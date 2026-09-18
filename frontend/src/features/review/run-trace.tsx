@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react"
+
 import { cn } from "@/lib/utils"
 import { MOCK } from "@/api/client"
 import { activeStep, STAGES, type ReviewProgress } from "@/api/progress"
@@ -32,6 +34,17 @@ function ticker(stage: (typeof STAGES)[number]["id"], p: ReviewProgress, hasRfp:
   return null
 }
 
+/** A clock that ticks while the trace is on screen: the timer is an external system. */
+function useElapsed(): number {
+  const [start] = useState(() => Date.now())
+  const [now, setNow] = useState(start)
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 500)
+    return () => clearInterval(t)
+  }, [])
+  return Math.round((now - start) / 1000)
+}
+
 /**
  * The run takes time and can fail, so it shows its work. Each row is a stage the backend
  * reports as it finishes, with what it found printed beneath it, so the wait is evidence
@@ -47,6 +60,10 @@ export function RunTrace({
   onStop: () => void
 }) {
   const active = activeStep(progress)
+  const elapsed = useElapsed()
+  const runningId = STAGES[active]?.id
+  /** The backend's latest word on what it is doing inside the running stage. */
+  const doing = runningId ? progress.notes.filter((n) => n.stage === runningId).at(-1) : undefined
 
   return (
     <div className="mx-auto flex min-h-svh w-full max-w-[42rem] flex-col justify-center px-5 py-16">
@@ -102,8 +119,14 @@ export function RunTrace({
                   !done && !running && "text-ink-3/60",
                 )}
               >
-                {skipped ? "skipped" : done ? "done" : running ? "running" : "waiting"}
+                {skipped ? "skipped" : done ? "done" : running ? `running · ${elapsed} s` : "waiting"}
               </span>
+
+              {running && doing && (
+                <p role="status" className="text-ink col-start-2 col-end-4 mt-1 text-[0.85rem] leading-snug">
+                  {doing.message}
+                </p>
+              )}
 
               {found && (
                 <p

@@ -881,6 +881,48 @@
         ],
         "title": "Outlines"
       },
+      "ProgressEvent": {
+        "properties": {
+          "stage": {
+            "type": "string",
+            "title": "Stage"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "elapsedMs": {
+            "type": "integer",
+            "title": "Elapsedms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "stage",
+          "message",
+          "elapsedMs"
+        ],
+        "title": "ProgressEvent",
+        "description": "A live note between stages: what the pipeline is doing right now, in plain words,\nso the wait is never a black box. `stage` is the stage being worked on."
+      },
+      "ProgressFrame": {
+        "properties": {
+          "event": {
+            "type": "string",
+            "const": "progress",
+            "title": "Event"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ProgressEvent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event",
+          "data"
+        ],
+        "title": "ProgressFrame"
+      },
       "Requirement": {
         "properties": {
           "id": {
@@ -1363,6 +1405,9 @@
           },
           {
             "$ref": "#/components/schemas/ErrorFrame"
+          },
+          {
+            "$ref": "#/components/schemas/ProgressFrame"
           }
         ],
         "discriminator": {
@@ -1372,6 +1417,7 @@
             "done": "#/components/schemas/DoneFrame",
             "error": "#/components/schemas/ErrorFrame",
             "findings": "#/components/schemas/FindingsFrame",
+            "progress": "#/components/schemas/ProgressFrame",
             "requirements": "#/components/schemas/RequirementsFrame",
             "scores": "#/components/schemas/ScoresFrame",
             "sections": "#/components/schemas/SectionsFrame"

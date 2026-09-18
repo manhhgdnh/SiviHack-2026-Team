@@ -120,6 +120,26 @@ export const zNumericSignal = z.object({
 });
 
 /**
+ * ProgressEvent
+ *
+ * A live note between stages: what the pipeline is doing right now, in plain words,
+ * so the wait is never a black box. `stage` is the stage being worked on.
+ */
+export const zProgressEvent = z.object({
+    stage: z.string(),
+    message: z.string(),
+    elapsedMs: z.int()
+});
+
+/**
+ * ProgressFrame
+ */
+export const zProgressFrame = z.object({
+    event: z.literal('progress'),
+    data: zProgressEvent
+});
+
+/**
  * Requirement
  */
 export const zRequirement = z.object({
@@ -398,7 +418,8 @@ export const zStreamEvent = z.discriminatedUnion('event', [
     zScoresFrame,
     zFindingsFrame,
     zDoneFrame,
-    zErrorFrame
+    zErrorFrame,
+    zProgressFrame
 ]);
 
 /**

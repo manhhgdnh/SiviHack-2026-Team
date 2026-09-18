@@ -3,6 +3,7 @@ caching, no-RFP, per-group failure, truncation salvage."""
 
 import asyncio
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Any
@@ -218,6 +219,15 @@ def _events(rfp: str, proposal: str, weights=None, provider=None) -> list[tuple[
 EVENTS = ["sections", "requirements", "coverage", "scores", "findings", "done"]
 
 
+def _stages(events: list[tuple[str, Any]]) -> list[str]:
+    """The stage frames in order; progress notes are interleaved and checked separately."""
+    return [e for e, _ in events if e != "progress"]
+
+
+def _payloads(events: list[tuple[str, Any]]) -> list[Any]:
+    return [p for e, p in events if e != "progress"]
+
+
 @pytest.fixture
 def cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setattr(pipeline, "CACHE", tmp_path / "cache")
@@ -338,9 +348,9 @@ def _check_full_result(done: ScoringResult, mode: str, calls: int) -> None:
 def test_merged_mode_two_calls_events_in_order(cache: Path):
     p = FakeProvider()
     events = _events(RFP, OVER, {"risk_transparency": 2}, p)
-    assert [e for e, _ in events] == EVENTS
+    assert _stages(events) == EVENTS
     assert p.calls == ["extract", "merged"]
-    sections, reqs, cov, scores, findings, done = (payload for _, payload in events)
+    sections, reqs, cov, scores, findings, done = _payloads(events)
     assert sections.rfp.count == 6 and sections.proposal.sections[4].header == "Pricing"
     assert [r.id for r in reqs.requirements] == [
         "r1",
@@ -363,7 +373,7 @@ def test_merged_mode_two_calls_events_in_order(cache: Path):
 def test_split_mode_runs_coverage_then_three_groups(cache: Path, split: None):
     p = FakeProvider()
     events = _events(RFP, OVER, {"risk_transparency": 2}, p)
-    assert [e for e, _ in events] == EVENTS
+    assert _stages(events) == EVENTS
     assert p.calls[:2] == ["extract", "coverage"]
     assert sorted(p.calls[2:]) == ["group:commercials", "group:risk", "group:understanding"]
     _check_full_result(events[-1][1], "split", 5)
@@ -413,7 +423,7 @@ def test_split_mode_truncated_group_is_salvaged_and_flagged_even_from_cache(
 def test_coverage_call_failure_yields_partial_result_with_requirements(cache: Path, split: None):
     p = FakeProvider(fail={"coverage"})
     events = _events(RFP, OVER, provider=p)
-    assert [e for e, _ in events] == ["sections", "requirements", "done"]
+    assert _stages(events) == ["sections", "requirements", "done"]
     assert p.calls == ["extract", "coverage", "coverage"]  # no groups without a triage
     done = events[-1][1]
     assert (
@@ -493,7 +503,7 @@ def test_cache_key_includes_prompt_version_and_model(cache: Path, monkeypatch: p
 def test_without_rfp_completeness_is_null_not_zero(cache: Path):
     p = FakeProvider()
     events = _events("", OVER, provider=p)
-    assert [e for e, _ in events] == EVENTS
+    assert _stages(events) == EVENTS
     assert p.calls == ["merged"]  # no extraction call
     done = events[-1][1]
     assert done.requirements == [] and done.constraints == [] and done.coverage == []
@@ -518,3 +528,27 @@ def test_call_1_failure_raises(cache: Path):
 
     with pytest.raises(RuntimeError, match="ollama down"):
         asyncio.run(pipeline.score_proposal(RFP, OVER, provider=Broken()))
+
+
+def test_progress_notes_say_what_each_stage_is_doing(cache: Path, split: None, caplog):
+    """Between the stage frames the pipeline narrates itself, and the same lines reach the log."""
+    caplog.set_level(logging.INFO, logger="app.pipeline")
+    events = _events(RFP, OVER, provider=FakeProvider())
+    notes = [p for e, p in events if e == "progress"]
+    assert [n.stage for n in notes[:3]] == ["requirements", "requirements", "coverage"]
+    assert "asking the model" in notes[0].message and "Verified" in notes[1].message
+    assert any("scoring 6 criteria in 3 parallel groups" in n.message for n in notes)
+    assert {n.message.split(" ")[0] for n in notes if "scored:" in n.message} == {
+        "understanding",
+        "commercials",
+        "risk",
+    }
+    assert notes[-1].stage == "findings" and "computing the overall" in notes[-1].message
+    assert all(n.elapsedMs >= 0 for n in notes)
+    # the run itself is one line of log per call and per stage, tagged with a run id
+    lines = [r.getMessage() for r in caplog.records if r.name == "app.pipeline"]
+    assert any("extract: calling fake" in line for line in lines)
+    assert any("coverage: addressed=" in line for line in lines)
+    assert any(" done in " in line and "overall=" in line for line in lines)
+    tags = {line.split(" ")[0] for line in lines if line.startswith("[")}
+    assert len(tags) == 1 and len(next(iter(tags))) == 6  # "[abcd]"

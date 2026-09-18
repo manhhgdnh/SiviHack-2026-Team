@@ -56,3 +56,6 @@ RECORD_DIR = env("LLM_RECORD_DIR")  # set → wrap the real provider and record 
 # ---- spend guard: all-time total of data/usage.csv on this machine; blank = unlimited ----
 _budget = env("LLM_BUDGET_USD").strip()
 BUDGET_USD: float | None = float(_budget) if _budget else None
+
+# ---- logging: INFO follows every run (calls, cache hits, grounding, cost); DEBUG adds prompts ----
+LOG_LEVEL = env("LOG_LEVEL", "INFO").strip().upper() or "INFO"

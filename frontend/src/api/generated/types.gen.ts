@@ -336,6 +336,38 @@ export type Outlines = {
 };
 
 /**
+ * ProgressEvent
+ *
+ * A live note between stages: what the pipeline is doing right now, in plain words,
+ * so the wait is never a black box. `stage` is the stage being worked on.
+ */
+export type ProgressEvent = {
+    /**
+     * Stage
+     */
+    stage: string;
+    /**
+     * Message
+     */
+    message: string;
+    /**
+     * Elapsedms
+     */
+    elapsedMs: number;
+};
+
+/**
+ * ProgressFrame
+ */
+export type ProgressFrame = {
+    /**
+     * Event
+     */
+    event: 'progress';
+    data: ProgressEvent;
+};
+
+/**
  * Requirement
  */
 export type Requirement = {
@@ -593,7 +625,9 @@ export type StreamEvent = ({
     event: 'done';
 } & DoneFrame) | ({
     event: 'error';
-} & ErrorFrame);
+} & ErrorFrame) | ({
+    event: 'progress';
+} & ProgressFrame);
 
 /**
  * VagueHit
