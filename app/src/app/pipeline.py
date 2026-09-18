@@ -213,8 +213,11 @@ async def extract_rfp(
     return ext, st, hit, gstats
 
 
+_PLURALS = {"criterion": "criteria", "near match": "near matches"}
+
+
 def _plural(n: int, word: str) -> str:
-    return f"{n} {word}{'' if n == 1 else 's'}"
+    return f"{n} {word if n == 1 else _PLURALS.get(word, word + 's')}"
 
 
 async def extract_requirements(rfp: str, provider: LlmProvider | None = None) -> RequirementsEvent:
